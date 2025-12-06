@@ -1,0 +1,28 @@
+<svg width="100" height="100" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="gradient1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#9932CC;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#FFD700;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#F8F9FA;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#FFFFFF;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Фон с закругленными углами -->
+  <rect width="100" height="100" rx="20" fill="url(#bgGradient)"/>
+  
+  <!-- Тень для звезды -->
+  <circle cx="50" cy="50" r="38" fill="#E0E0E0" opacity="0.2"/>
+  
+  <!-- Звезда (координаты пересчитаны из 24x24 в 100x100) -->
+  <path 
+    d="M50 4.17L58.07 30.26L85.21 33.96L66.77 52.40L72.11 79.47L50 73.78L27.89 79.47L33.23 52.40L14.79 33.96L41.93 30.26L50 4.17Z"
+    fill="url(#gradient1)"
+    stroke="#7A3F9D" 
+    stroke-width="1.5" 
+    stroke-linecap="round" 
+    stroke-linejoin="round"
+  />
+</svg>
