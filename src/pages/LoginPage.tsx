@@ -117,6 +117,7 @@ export const LoginPage = () => {
                     onChange={handleChange}
                     placeholder="Введите ваш email"
                     className="pl-12 h-12 rounded-2xl bg-secondary/50 border-2 border-transparent focus:border-primary/30 transition-all"
+                    autoComplete="email"
                     required
                   />
                 </div>
@@ -137,6 +138,7 @@ export const LoginPage = () => {
                     onChange={handleChange}
                     placeholder="Введите ваш пароль"
                     className="pl-12 h-12 rounded-2xl bg-secondary/50 border-2 border-transparent focus:border-primary/30 transition-all"
+                    autoComplete="current-password"
                     required
                   />
                 </div>

@@ -140,6 +140,7 @@ export const RegisterPage = () => {
                     onChange={handleChange}
                     placeholder="Введите ваше имя"
                     className="pl-12 h-12 rounded-2xl bg-secondary/50 border-2 border-transparent focus:border-primary/30 transition-all"
+                    autoComplete="name"
                     required
                   />
                 </div>
@@ -162,6 +163,7 @@ export const RegisterPage = () => {
                     onChange={handleChange}
                     placeholder="Введите ваш email"
                     className="pl-12 h-12 rounded-2xl bg-secondary/50 border-2 border-transparent focus:border-primary/30 transition-all"
+                    autoComplete="email"
                     required
                   />
                 </div>
@@ -184,6 +186,7 @@ export const RegisterPage = () => {
                     onChange={handleChange}
                     placeholder="Введите ваш телефон"
                     className="pl-12 h-12 rounded-2xl bg-secondary/50 border-2 border-transparent focus:border-primary/30 transition-all"
+                    autoComplete="tel"
                     required
                   />
                 </div>
@@ -206,6 +209,7 @@ export const RegisterPage = () => {
                     onChange={handleChange}
                     placeholder="Придумайте пароль"
                     className="pl-12 h-12 rounded-2xl bg-secondary/50 border-2 border-transparent focus:border-primary/30 transition-all"
+                    autoComplete="new-password"
                     required
                   />
                 </div>

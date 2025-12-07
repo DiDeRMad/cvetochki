@@ -5,7 +5,7 @@ import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 import { addonPrices, useFlowerStore } from '@/lib/store';
 import { apiFetch } from '@/lib/api';
-import { useAuthStore } from '@/lib/authStore';
+import { AuthUser, useAuthStore } from '@/lib/authStore';
 import { fadeUp, glowPulse, staggerContainer } from '@/lib/motion';
 
 export const ProfilePage = () => {
@@ -18,6 +18,8 @@ export const ProfilePage = () => {
   const { lastOrder } = useFlowerStore();
   const token = useAuthStore((state) => state.token);
   const authUser = useAuthStore((state) => state.user);
+  const setAuth = useAuthStore((state) => state.setAuth);
+  const clearAuth = useAuthStore((state) => state.clear);
   const setLastOrder = useFlowerStore((state) => state.setLastOrder);
 
   useEffect(() => {
@@ -35,6 +37,20 @@ export const ProfilePage = () => {
       }
     }
   }, [authUser]);
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      if (!token || authUser) return;
+      try {
+        const me = await apiFetch<AuthUser>('/me');
+        setAuth(token, me);
+        setUser({ name: me.full_name, email: me.email, phone: me.phone });
+      } catch {
+        setUser(null);
+      }
+    };
+    fetchUser();
+  }, [token, authUser, setAuth]);
 
   useEffect(() => {
     const loadLastOrder = async () => {
@@ -77,8 +93,7 @@ export const ProfilePage = () => {
   }, [token, setLastOrder]);
 
   const handleLogout = () => {
-    localStorage.removeItem('user');
-    window.dispatchEvent(new CustomEvent('userUpdated'));
+    clearAuth();
     toast.success('Вы вышли из профиля');
     navigate('/catalog');
   };
