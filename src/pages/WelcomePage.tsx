@@ -1,9 +1,13 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Flower2, ArrowRight } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 export const WelcomePage = () => {
+  const isIOS = useMemo(
+    () => typeof navigator !== 'undefined' && /iP(hone|od|ad)/.test(navigator.userAgent),
+    []
+  );
   const navigate = useNavigate();
   const [isVisible, setIsVisible] = useState(false);
 
@@ -17,14 +21,14 @@ export const WelcomePage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-purple-light via-background to-background flex flex-col items-center justify-center px-4 relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-b from-purple-light via-background to-background flex flex-col items-center justify-center px-4 relative overflow-hidden motion-smooth transform-gpu">
       <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
         <div className="absolute -top-40 -right-40 w-80 h-80 rounded-full bg-primary/5 blur-3xl" />
         <div className="absolute bottom-40 -left-40 w-60 h-60 rounded-full bg-primary/5 blur-3xl" />
       </div>
 
       <motion.div
-        initial={{ opacity: 0, y: 30 }}
+        initial={{ opacity: 0.01, y: 30 }}
         animate={{ opacity: isVisible ? 1 : 0, y: isVisible ? 0 : 30 }}
         transition={{ duration: 0.6 }}
         className="text-center z-10 max-w-sm w-full px-4"
@@ -36,12 +40,9 @@ export const WelcomePage = () => {
           className="mb-8"
         >
           <motion.div
-            animate={{ 
-              rotate: [0, 10, -10, 0],
-              scale: [1, 1.05, 1]
-            }}
+            animate={isIOS ? undefined : { rotate: [0, 10, -10, 0], scale: [1, 1.05, 1] }}
             transition={{ duration: 3, repeat: Infinity, repeatDelay: 2 }}
-            className="w-32 h-32 mx-auto rounded-3xl gradient-primary flex items-center justify-center shadow-2xl"
+            className="w-32 h-32 mx-auto rounded-3xl gradient-primary flex items-center justify-center shadow-2xl motion-smooth transform-gpu"
           >
             <Flower2 className="w-16 h-16 text-primary-foreground" />
           </motion.div>
@@ -72,7 +73,7 @@ export const WelcomePage = () => {
           className="flex items-center justify-center gap-2 mb-12"
         >
           <motion.div
-            animate={{ rotate: [0, 5, -5, 0] }}
+            animate={isIOS ? undefined : { rotate: [0, 5, -5, 0] }}
             transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
           >
             <Flower2 className="w-7 h-7 text-primary" />

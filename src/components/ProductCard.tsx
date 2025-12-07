@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { Product, useFlowerStore } from '@/lib/store';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
+import { useMemo } from 'react';
 
 interface ProductCardProps {
   product: Product;
@@ -12,6 +13,10 @@ interface ProductCardProps {
 export const ProductCard = ({ product, index = 0 }: ProductCardProps) => {
   const navigate = useNavigate();
   const addToCart = useFlowerStore((state) => state.addToCart);
+  const isIOS = useMemo(
+    () => typeof navigator !== 'undefined' && /iP(hone|od|ad)/.test(navigator.userAgent),
+    []
+  );
 
   const handleQuickAdd = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -26,38 +31,54 @@ export const ProductCard = ({ product, index = 0 }: ProductCardProps) => {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 30, scale: 0.9 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      transition={{ 
-        duration: 0.5, 
-        delay: index * 0.1,
-        type: "spring",
-        stiffness: 100
-      }}
-      whileHover={{ y: -8 }}
-      className="card-product cursor-pointer group"
+      {...(isIOS
+        ? {
+            initial: { opacity: 0.01, y: 8 },
+            animate: { opacity: 1, y: 0 },
+            transition: { duration: 0.22, delay: index * 0.05, ease: [0.25, 0.8, 0.35, 1] },
+          }
+        : {
+            initial: { opacity: 0.01, y: 30, scale: 0.9 },
+            animate: { opacity: 1, y: 0, scale: 1 },
+            transition: {
+              duration: 0.28,
+              delay: index * 0.08,
+              type: "tween",
+              ease: [0.22, 1, 0.36, 1],
+            },
+            whileHover: { y: -8 },
+          })}
+      className={`card-product cursor-pointer group motion-smooth transform-gpu ${isIOS ? 'ios-fade' : ''}`}
       onClick={() => navigate(`/product/${product.id}`)}
     >
       <div className="relative aspect-square overflow-hidden rounded-t-2xl">
         <motion.img
           src={product.image}
           alt={product.name}
-          className="w-full h-full object-cover"
+          className="w-full h-full object-cover motion-smooth transform-gpu"
           style={{ objectFit: 'cover', width: '100%', height: '100%' }}
-          whileHover={{ scale: 1.08 }}
-          transition={{ duration: 0.4 }}
+          {...(isIOS
+            ? {}
+            : {
+                whileHover: { scale: 1.08 },
+                transition: { duration: 0.4 },
+              })}
         />
         
-        <div className="absolute inset-0 bg-gradient-to-t from-foreground/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+        <div className={`absolute inset-0 bg-gradient-to-t from-foreground/20 via-transparent to-transparent ${isIOS ? '' : 'opacity-0 group-hover:opacity-100 transition-opacity duration-300'}`} />
         
         <motion.button
-          initial={{ scale: 0, rotate: -180 }}
-          animate={{ scale: 1, rotate: 0 }}
-          transition={{ delay: index * 0.1 + 0.3, type: "spring" }}
-          whileHover={{ scale: 1.15, rotate: 90 }}
-          whileTap={{ scale: 0.9 }}
+          {...(isIOS
+            ? {}
+            : {
+                initial: { scale: 0.6, opacity: 0 },
+                animate: { scale: 1, opacity: 1 },
+                transition: { delay: index * 0.1 + 0.2, type: "tween", duration: 0.2, ease: [0.22, 1, 0.36, 1] },
+                whileHover: { scale: 1.1 },
+              })}
+          whileTap={{ scale: 0.94 }}
           onClick={handleQuickAdd}
-          className="floating-button absolute bottom-3 right-3 w-10 h-10"
+          className={`floating-button absolute bottom-3 right-3 w-10 h-10 motion-smooth transform-gpu ${isIOS ? 'ios-fade' : ''}`}
         >
           <Plus className="w-5 h-5" />
         </motion.button>

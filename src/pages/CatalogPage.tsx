@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Search, SlidersHorizontal, Flower2, Flower, Sun, Palette, Wheat } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ProductCard } from '@/components/ProductCard';
@@ -33,6 +33,10 @@ const minPrice = 1000;
 const maxPrice = 3000;
 
 export const CatalogPage = () => {
+  const isIOS = useMemo(
+    () => typeof navigator !== 'undefined' && /iP(hone|od|ad)/.test(navigator.userAgent),
+    []
+  );
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(true);
@@ -84,6 +88,40 @@ export const CatalogPage = () => {
   const activeFiltersCount = filters.categories.length + 
     (filters.priceRange[0] !== minPrice || filters.priceRange[1] !== maxPrice ? 1 : 0);
 
+  const iosFadeTransition = { type: "tween" as const, duration: 0.2, ease: [0.25, 0.8, 0.35, 1] as const };
+  const motionListProps = isIOS
+    ? {}
+    : {
+        initial: { opacity: 0.01, y: -20 },
+        animate: { opacity: 1, y: 0 },
+        transition: { type: "tween" as const, duration: 0.22, ease: [0.22, 1, 0.36, 1] as const },
+      };
+
+  const motionGridProps = isIOS
+    ? {
+        initial: { opacity: 0.01, y: 8 },
+        animate: { opacity: 1, y: 0 },
+        transition: iosFadeTransition,
+      }
+    : {
+        initial: { opacity: 0.01 },
+        animate: { opacity: 1 },
+        exit: { opacity: 0 },
+        transition: { type: "tween" as const, duration: 0.22, ease: [0.22, 1, 0.36, 1] as const },
+      };
+
+  const motionEmptyProps = isIOS
+    ? {
+        initial: { opacity: 0.01, y: 8 },
+        animate: { opacity: 1, y: 0 },
+        transition: iosFadeTransition,
+      }
+    : {
+        initial: { opacity: 0.01, scale: 0.9 },
+        animate: { opacity: 1, scale: 1 },
+        transition: { type: "tween" as const, duration: 0.22, ease: [0.22, 1, 0.36, 1] as const },
+      };
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-purple-light via-background to-background pb-24">
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
@@ -94,14 +132,10 @@ export const CatalogPage = () => {
       <header className="fixed top-0 left-0 right-0 z-40 px-4 pt-2 pb-2 bg-gradient-to-b from-purple-light via-background to-transparent">
         <div className="glass-card rounded-2xl p-2.5 shadow-soft">
           <motion.div 
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="flex items-center justify-center gap-2 mb-2"
+            {...motionListProps}
+            className={`flex items-center justify-center gap-2 mb-2 motion-smooth ${isIOS ? 'ios-fade' : ''}`}
           >
-            <motion.div
-              animate={{ rotate: [0, 10, -10, 0] }}
-              transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
-            >
+            <motion.div animate={isIOS ? undefined : { rotate: [0, 10, -10, 0] }} transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}>
               <Flower2 className="w-5 h-5 text-primary" />
             </motion.div>
             <h1 className="text-lg font-bold text-gradient tracking-tight">
@@ -110,10 +144,14 @@ export const CatalogPage = () => {
           </motion.div>
           
           <motion.div 
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="flex gap-2"
+            {...(isIOS
+              ? {}
+              : {
+                  initial: { opacity: 0.01, y: 10 },
+                  animate: { opacity: 1, y: 0 },
+                  transition: { delay: 0.2 },
+                })}
+            className={`flex gap-2 motion-smooth ${isIOS ? 'ios-fade' : ''}`}
           >
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -129,7 +167,7 @@ export const CatalogPage = () => {
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={() => setIsFiltersOpen(true)}
-              className="floating-button w-10 h-10 relative"
+              className="floating-button w-10 h-10 relative motion-smooth transform-gpu"
             >
               <SlidersHorizontal className="w-4 h-4" />
               {activeFiltersCount > 0 && (
@@ -151,10 +189,8 @@ export const CatalogPage = () => {
           {isLoading ? (
             <motion.div 
               key="skeleton"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="grid grid-cols-2 gap-3"
+              {...motionGridProps}
+              className={`grid grid-cols-2 gap-3 motion-smooth transform-gpu ${isIOS ? 'ios-fade' : ''}`}
             >
               {[...Array(6)].map((_, i) => (
                 <ProductCardSkeleton key={i} />
@@ -163,9 +199,8 @@ export const CatalogPage = () => {
           ) : (
             <motion.div 
               key="products"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="grid grid-cols-2 gap-3"
+              {...motionGridProps}
+              className={`grid grid-cols-2 gap-3 motion-smooth transform-gpu ${isIOS ? 'ios-fade' : ''}`}
             >
               {filteredProducts.map((product, index) => (
                 <ProductCard key={product.id} product={product} index={index} />
@@ -176,14 +211,13 @@ export const CatalogPage = () => {
         
         {!isLoading && filteredProducts.length === 0 && (
           <motion.div 
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="text-center py-16"
+            {...motionEmptyProps}
+            className={`text-center py-16 motion-smooth transform-gpu ${isIOS ? 'ios-fade' : ''}`}
           >
             <motion.div
-              animate={{ y: [0, -10, 0] }}
+              animate={isIOS ? undefined : { y: [0, -10, 0] }}
               transition={{ duration: 2, repeat: Infinity }}
-              className="w-20 h-20 mx-auto mb-4 rounded-full bg-purple-light flex items-center justify-center"
+              className="w-20 h-20 mx-auto mb-4 rounded-full bg-purple-light flex items-center justify-center motion-smooth transform-gpu"
             >
               <Search className="w-10 h-10 text-primary/50" />
             </motion.div>
@@ -203,7 +237,8 @@ export const CatalogPage = () => {
                 <motion.span
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
-                  className="text-sm font-normal text-muted-foreground"
+                  transition={{ type: "tween", duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+                  className="text-sm font-normal text-muted-foreground motion-smooth transform-gpu"
                 >
                   ({activeFiltersCount} активных)
                 </motion.span>
@@ -250,7 +285,7 @@ export const CatalogPage = () => {
                       key={category.id}
                       initial={{ opacity: 0, x: -10 }}
                       animate={{ opacity: 1, x: 0 }}
-                      className="flex items-center space-x-3"
+                      className="flex items-center space-x-3 motion-smooth transform-gpu"
                     >
                       <Checkbox
                         id={category.id}

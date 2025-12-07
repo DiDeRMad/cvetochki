@@ -1,23 +1,80 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, User, Mail, Phone, LogOut, Flower2 } from 'lucide-react';
+import { ArrowLeft, User, Mail, Phone, LogOut, Flower2, MapPin, Clock, Receipt } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
+import { addonPrices, useFlowerStore } from '@/lib/store';
+import { apiFetch } from '@/lib/api';
+import { useAuthStore } from '@/lib/authStore';
+import { fadeUp, glowPulse, staggerContainer } from '@/lib/motion';
 
 export const ProfilePage = () => {
+  const isIOS = useMemo(
+    () => typeof navigator !== 'undefined' && /iP(hone|od|ad)/.test(navigator.userAgent),
+    []
+  );
   const navigate = useNavigate();
   const [user, setUser] = useState<{ name: string; email: string; phone: string } | null>(null);
+  const { lastOrder } = useFlowerStore();
+  const token = useAuthStore((state) => state.token);
+  const authUser = useAuthStore((state) => state.user);
+  const setLastOrder = useFlowerStore((state) => state.setLastOrder);
 
   useEffect(() => {
+    if (authUser) {
+      setUser({ name: authUser.full_name, email: authUser.email, phone: authUser.phone });
+      return;
+    }
     const userData = localStorage.getItem('user');
     if (userData) {
       try {
-        setUser(JSON.parse(userData));
+        const parsed = JSON.parse(userData);
+        setUser({ name: parsed.name || parsed.full_name || '', email: parsed.email, phone: parsed.phone });
       } catch {
         setUser(null);
       }
     }
-  }, []);
+  }, [authUser]);
+
+  useEffect(() => {
+    const loadLastOrder = async () => {
+      if (!token) return;
+      try {
+        const order = await apiFetch<any>('/orders/last');
+        if (order) {
+          setLastOrder({
+            id: String(order.id),
+            items: (order.items || []).map((i: any) => ({
+              product: {
+                id: String(i.productid || i.productId),
+                name: 'Товар',
+                price: Number(i.unitprice || i.unitPrice) + Number(i.addonsprice || i.addonsPrice || 0),
+                image: '',
+                description: '',
+                images: [],
+              },
+              quantity: i.quantity,
+              addons: i.addons || [],
+            })),
+            totals: {
+              subtotal: Number(order.subtotal),
+              shipping: Number(order.shipping),
+              total: Number(order.total),
+            },
+            delivery: {
+              city: order.city,
+              address: order.address,
+              time: order.time,
+            },
+            createdAt: order.created_at || new Date().toISOString(),
+          });
+        }
+      } catch {
+        setLastOrder(null);
+      }
+    };
+    loadLastOrder();
+  }, [token, setLastOrder]);
 
   const handleLogout = () => {
     localStorage.removeItem('user');
@@ -38,10 +95,18 @@ export const ProfilePage = () => {
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            onClick={() => navigate('/register')}
-            className="btn-primary"
+            onClick={() => navigate('/login')}
+            className="btn-primary mb-3"
           >
-            Зарегистрироваться
+            Войти
+          </motion.button>
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => navigate('/register')}
+            className="px-4 py-2 rounded-xl bg-secondary text-foreground"
+          >
+            Регистрация
           </motion.button>
         </motion.div>
       </div>
@@ -49,20 +114,25 @@ export const ProfilePage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-purple-light via-background to-background pb-24">
+    <div className="min-h-screen bg-gradient-to-b from-purple-light via-background to-background pb-24 motion-smooth transform-gpu">
       <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
         <div className="absolute -top-40 -right-40 w-80 h-80 rounded-full bg-primary/5 blur-3xl" />
         <div className="absolute top-1/2 -left-40 w-60 h-60 rounded-full bg-primary/5 blur-3xl" />
       </div>
 
       <motion.header 
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="sticky top-0 z-40 px-4 py-4"
+        {...(isIOS
+          ? {}
+          : {
+              initial: "hidden",
+              animate: "visible",
+              variants: fadeUp,
+            })}
+        className={`px-4 py-4 motion-smooth transform-gpu ${isIOS ? 'ios-fade' : ''}`}
       >
-        <div className="glass-card rounded-2xl px-4 py-3 flex items-center gap-4 shadow-soft">
+        <div className="glass-card rounded-2xl px-4 py-3 flex items-center gap-4 shadow-soft motion-smooth transform-gpu">
           <motion.button
-            whileHover={{ scale: 1.1 }}
+            whileHover={isIOS ? undefined : { scale: 1.1 }}
             whileTap={{ scale: 0.9 }}
             onClick={() => navigate(-1)}
             className="w-10 h-10 rounded-xl bg-secondary flex items-center justify-center"
@@ -71,7 +141,7 @@ export const ProfilePage = () => {
           </motion.button>
           <div className="flex items-center gap-2">
             <motion.div
-              animate={{ rotate: [0, 10, -10, 0] }}
+              animate={isIOS ? undefined : { rotate: [0, 10, -10, 0] }}
               transition={{ duration: 2, repeat: Infinity, repeatDelay: 5 }}
             >
               <Flower2 className="w-6 h-6 text-primary" />
@@ -83,17 +153,30 @@ export const ProfilePage = () => {
 
       <main className="px-4 pt-8 relative z-10">
         <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="max-w-md mx-auto"
+          {...(isIOS
+            ? {}
+            : {
+                initial: { opacity: 0.01, y: 30 },
+                animate: { opacity: 1, y: 0 },
+                transition: { delay: 0.2, type: "tween", duration: 0.26, ease: [0.22, 1, 0.36, 1] },
+              })}
+          className="max-w-md mx-auto motion-smooth transform-gpu"
         >
-          <div className="glass-card rounded-3xl p-6 shadow-soft mb-6">
+          <motion.div
+            variants={fadeUp}
+            initial="hidden"
+            animate="visible"
+            className="glass-card rounded-3xl p-6 shadow-soft mb-6 motion-smooth transform-gpu"
+          >
             <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.3 }}
-              className="flex flex-col items-center mb-6"
+              {...(isIOS
+                ? {}
+                : {
+                    initial: { opacity: 0.01, scale: 0.9 },
+                    animate: { opacity: 1, scale: 1 },
+                    transition: { delay: 0.3, type: "tween", duration: 0.22, ease: [0.22, 1, 0.36, 1] },
+                  })}
+              className="flex flex-col items-center mb-6 motion-smooth transform-gpu"
             >
               <div className="w-24 h-24 rounded-full gradient-primary flex items-center justify-center mb-4 shadow-card">
                 <span className="text-primary-foreground text-3xl font-bold">
@@ -107,10 +190,14 @@ export const ProfilePage = () => {
 
             <div className="space-y-4">
               <motion.div
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.4 }}
-                className="flex items-center gap-4 p-4 rounded-2xl bg-secondary/50"
+                {...(isIOS
+                  ? {}
+                  : {
+                      initial: { opacity: 0.01, x: -20 },
+                      animate: { opacity: 1, x: 0 },
+                      transition: { delay: 0.4, type: "tween", duration: 0.2, ease: [0.22, 1, 0.36, 1] },
+                    })}
+                className="flex items-center gap-4 p-4 rounded-2xl bg-secondary/50 motion-smooth transform-gpu"
               >
                 <div className="w-10 h-10 rounded-xl gradient-primary flex items-center justify-center">
                   <User className="w-5 h-5 text-primary-foreground" />
@@ -122,10 +209,14 @@ export const ProfilePage = () => {
               </motion.div>
 
               <motion.div
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.5 }}
-                className="flex items-center gap-4 p-4 rounded-2xl bg-secondary/50"
+                {...(isIOS
+                  ? {}
+                  : {
+                      initial: { opacity: 0.01, x: -20 },
+                      animate: { opacity: 1, x: 0 },
+                      transition: { delay: 0.5, type: "tween", duration: 0.2, ease: [0.22, 1, 0.36, 1] },
+                    })}
+                className="flex items-center gap-4 p-4 rounded-2xl bg-secondary/50 motion-smooth transform-gpu"
               >
                 <div className="w-10 h-10 rounded-xl gradient-primary flex items-center justify-center">
                   <Mail className="w-5 h-5 text-primary-foreground" />
@@ -137,10 +228,14 @@ export const ProfilePage = () => {
               </motion.div>
 
               <motion.div
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.6 }}
-                className="flex items-center gap-4 p-4 rounded-2xl bg-secondary/50"
+                {...(isIOS
+                  ? {}
+                  : {
+                      initial: { opacity: 0.01, x: -20 },
+                      animate: { opacity: 1, x: 0 },
+                      transition: { delay: 0.6, type: "tween", duration: 0.2, ease: [0.22, 1, 0.36, 1] },
+                    })}
+                className="flex items-center gap-4 p-4 rounded-2xl bg-secondary/50 motion-smooth transform-gpu"
               >
                 <div className="w-10 h-10 rounded-xl gradient-primary flex items-center justify-center">
                   <Phone className="w-5 h-5 text-primary-foreground" />
@@ -151,16 +246,97 @@ export const ProfilePage = () => {
                 </div>
               </motion.div>
             </div>
-          </div>
+          </motion.div>
+
+          <motion.div
+            variants={staggerContainer}
+            initial="hidden"
+            animate="visible"
+            className="glass-card rounded-3xl p-6 shadow-soft mb-6 space-y-4 motion-smooth transform-gpu"
+          >
+            <div className="flex items-center gap-2">
+              <Receipt className="w-5 h-5 text-primary" />
+              <h3 className="text-lg font-semibold text-foreground">Последний заказ</h3>
+            </div>
+
+            {!lastOrder && (
+              <p className="text-muted-foreground text-sm">Заказов пока нет. Соберите корзину и оформите доставку.</p>
+            )}
+
+            {lastOrder && (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between text-sm text-muted-foreground">
+                  <span>Номер</span>
+                  <span className="text-foreground font-semibold">{lastOrder.id}</span>
+                </div>
+                <div className="grid grid-cols-1 gap-3">
+                  <div className="rounded-2xl bg-secondary/60 p-3">
+                    <p className="text-xs text-muted-foreground uppercase tracking-wide">Доставка</p>
+                    <div className="flex items-center gap-2 text-sm text-foreground">
+                      <MapPin className="w-4 h-4 text-primary" />
+                      <span>{lastOrder.delivery.city}, {lastOrder.delivery.address}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm text-foreground mt-1">
+                      <Clock className="w-4 h-4 text-primary" />
+                      <span>{lastOrder.delivery.time}</span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2 rounded-2xl bg-secondary/60 p-3">
+                    <p className="text-xs text-muted-foreground uppercase tracking-wide">Товары</p>
+                    <div className="space-y-2">
+                      {lastOrder.items.map((item) => {
+                        const addonsSum = item.addons.reduce(
+                          (sum, id) => sum + (addonPrices[id] || 0),
+                          0
+                        );
+                        const itemTotal = (item.product.price + addonsSum) * item.quantity;
+                        return (
+                          <div key={item.product.id} className="flex items-start justify-between">
+                            <div className="flex-1 mr-3">
+                              <p className="text-sm font-semibold text-foreground leading-tight">{item.product.name}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {item.quantity} шт. · {(item.product.price + addonsSum).toLocaleString('ru-RU')} ₽ за ед.
+                              </p>
+                            </div>
+                            <span className="text-sm font-semibold text-gradient whitespace-nowrap">
+                              {itemTotal.toLocaleString('ru-RU')} ₽
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-2 pt-2 border-t border-border">
+                  <div className="flex justify-between text-sm text-muted-foreground">
+                    <span>Подытог</span>
+                    <span className="text-foreground font-medium">{lastOrder.totals.subtotal.toLocaleString('ru-RU')} ₽</span>
+                  </div>
+                  <div className="flex justify-between text-sm text-muted-foreground">
+                    <span>Доставка</span>
+                    <span className="text-foreground font-medium">{lastOrder.totals.shipping.toLocaleString('ru-RU')} ₽</span>
+                  </div>
+                  <div className="flex justify-between items-center pt-2 border-t border-border">
+                    <span className="font-semibold text-foreground">Итого</span>
+                    <span className="font-bold text-2xl text-gradient">
+                      {lastOrder.totals.total.toLocaleString('ru-RU')} ₽
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+          </motion.div>
 
           <motion.button
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.7 }}
+            variants={glowPulse}
+            initial="hidden"
+            animate="visible"
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             onClick={handleLogout}
-            className="btn-primary w-full py-4 text-lg flex items-center justify-center gap-2"
+            className={`btn-primary w-full py-4 text-lg flex items-center justify-center gap-2 motion-smooth transform-gpu ${isIOS ? 'ios-fade' : ''}`}
           >
             <LogOut className="w-5 h-5" />
             <span>Выйти из профиля</span>

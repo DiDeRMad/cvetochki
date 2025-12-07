@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 
 import bouquetRoses from '@/assets/bouquet-roses.jpg';
 import bouquetTulips from '@/assets/bouquet-tulips.jpg';
@@ -45,14 +46,38 @@ export interface CartItem {
   addons: string[];
 }
 
+export interface DeliveryDetails {
+  city: string;
+  address: string;
+  time: string;
+}
+
+export interface OrderSummary {
+  id: string;
+  items: CartItem[];
+  totals: {
+    subtotal: number;
+    shipping: number;
+    total: number;
+  };
+  delivery: DeliveryDetails;
+  createdAt: string;
+}
+
 interface FlowerStore {
   products: Product[];
   cart: CartItem[];
+  shippingPrice: number;
+  lastOrder: OrderSummary | null;
   addToCart: (product: Product, quantity?: number, addons?: string[]) => void;
   removeFromCart: (productId: string) => void;
   updateQuantity: (productId: string, quantity: number) => void;
   getCartTotal: () => number;
   getCartCount: () => number;
+  getCartTotals: () => { subtotal: number; shipping: number; total: number };
+  clearCart: () => void;
+  createOrder: (details: DeliveryDetails) => OrderSummary | null;
+  setLastOrder: (order: OrderSummary | null) => void;
 }
 
 export const products: Product[] = [
@@ -138,9 +163,18 @@ export const products: Product[] = [
   },
 ];
 
-export const useFlowerStore = create<FlowerStore>((set, get) => ({
+export const addonPrices: Record<string, number> = {
+  card: 200,
+  vase: 500,
+};
+
+export const useFlowerStore = create<FlowerStore>()(
+  persist(
+    (set, get) => ({
   products,
   cart: [],
+  shippingPrice: 300,
+  lastOrder: null,
   
   addToCart: (product, quantity = 1, addons = []) => {
     set((state) => {
@@ -177,11 +211,6 @@ export const useFlowerStore = create<FlowerStore>((set, get) => ({
   },
   
   getCartTotal: () => {
-    const addonPrices: Record<string, number> = {
-      card: 200,
-      vase: 500,
-    };
-    
     return get().cart.reduce((total, item) => {
       const addonsSum = item.addons.reduce(
         (sum, id) => sum + (addonPrices[id] || 0),
@@ -194,4 +223,66 @@ export const useFlowerStore = create<FlowerStore>((set, get) => ({
   getCartCount: () => {
     return get().cart.reduce((count, item) => count + item.quantity, 0);
   },
-}));
+
+  getCartTotals: () => {
+    const subtotal = get().getCartTotal();
+    const shipping = subtotal > 0 ? get().shippingPrice : 0;
+    const total = subtotal + shipping;
+    return { subtotal, shipping, total };
+  },
+
+  clearCart: () => {
+    set({ cart: [] });
+  },
+
+  setLastOrder: (order) => {
+    set({ lastOrder: order });
+  },
+
+  createOrder: (details) => {
+    const itemsSnapshot = get().cart.map((item) => ({
+      product: item.product,
+      quantity: item.quantity,
+      addons: [...item.addons],
+    }));
+
+    if (itemsSnapshot.length === 0) {
+      return null;
+    }
+
+    const subtotal = itemsSnapshot.reduce((total, item) => {
+      const addonsSum = item.addons.reduce(
+        (sum, id) => sum + (addonPrices[id] || 0),
+        0
+      );
+      return total + (item.product.price + addonsSum) * item.quantity;
+    }, 0);
+
+    const shipping = subtotal > 0 ? get().shippingPrice : 0;
+    const total = subtotal + shipping;
+
+    const order: OrderSummary = {
+      id: `FS-${Date.now()}`,
+      items: itemsSnapshot,
+      totals: { subtotal, shipping, total },
+      delivery: details,
+      createdAt: new Date().toISOString(),
+    };
+
+    set({
+      lastOrder: order,
+      cart: [],
+    });
+
+    return order;
+  },
+    }),
+    {
+      name: 'flower-store',
+      partialize: (state) => ({
+        cart: state.cart,
+        lastOrder: state.lastOrder,
+      }),
+    }
+  )
+);

@@ -3,23 +3,20 @@ import { ArrowLeft, ShoppingBag, CheckCircle2, Flower2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useFlowerStore } from '@/lib/store';
 import { CartItemCard } from '@/components/CartItem';
-import { toast } from 'sonner';
+import { useMemo } from 'react';
+import { fadeUp, glowPulse } from '@/lib/motion';
 
 export const CartPage = () => {
+  const isIOS = useMemo(
+    () => typeof navigator !== 'undefined' && /iP(hone|od|ad)/.test(navigator.userAgent),
+    []
+  );
   const navigate = useNavigate();
-  const { cart, getCartTotal } = useFlowerStore();
-  
-  const subtotal = getCartTotal();
-  const shipping = subtotal > 0 ? 300 : 0;
-  const total = subtotal + shipping;
+  const { cart, getCartTotals } = useFlowerStore();
+  const { subtotal, shipping, total } = getCartTotals();
 
   const handleCheckout = () => {
-    toast.success(
-      <div className="flex items-center gap-2">
-        <CheckCircle2 className="w-4 h-4 text-primary" />
-        <span>Заказ принят, мы свяжемся с вами</span>
-      </div>
-    );
+    navigate('/checkout');
   };
 
   return (
@@ -32,7 +29,7 @@ export const CartPage = () => {
       <motion.header 
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="sticky top-0 z-40 px-4 py-4"
+        className="px-4 py-4"
       >
         <div className="glass-card rounded-2xl px-4 py-3 flex items-center gap-4 shadow-soft">
           <motion.button
@@ -45,7 +42,7 @@ export const CartPage = () => {
           </motion.button>
           <div className="flex items-center gap-2">
             <motion.div
-              animate={{ rotate: [0, 10, -10, 0] }}
+              animate={isIOS ? undefined : { rotate: [0, 10, -10, 0] }}
               transition={{ duration: 2, repeat: Infinity, repeatDelay: 5 }}
             >
               <Flower2 className="w-6 h-6 text-primary" />
@@ -66,11 +63,15 @@ export const CartPage = () => {
               className="flex flex-col items-center justify-center py-20 text-center"
             >
               <motion.div
-                animate={{ 
-                  y: [0, -15, 0],
-                  rotate: [0, 5, -5, 0]
-                }}
-                transition={{ duration: 3, repeat: Infinity }}
+              animate={
+                isIOS
+                  ? undefined
+                  : { 
+                      y: [0, -15, 0],
+                      rotate: [0, 5, -5, 0]
+                    }
+              }
+              transition={{ duration: 3, repeat: Infinity }}
                 className="w-24 h-24 rounded-3xl gradient-primary flex items-center justify-center mb-6 shadow-card"
               >
                 <ShoppingBag className="w-12 h-12 text-primary-foreground" />
@@ -120,20 +121,22 @@ export const CartPage = () => {
           >
             <div className="max-w-md mx-auto space-y-4">
               <div className="space-y-2">
-                <motion.div 
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  className="flex justify-between text-sm"
-                >
+          <motion.div 
+            variants={fadeUp}
+            initial="hidden"
+            animate="visible"
+            className="flex justify-between text-sm"
+          >
                   <span className="text-muted-foreground">Подытог</span>
                   <span className="text-foreground font-medium">
                     {subtotal.toLocaleString('ru-RU')} ₽
                   </span>
                 </motion.div>
                 <motion.div 
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.1 }}
+            variants={fadeUp}
+            initial="hidden"
+            animate="visible"
+            transition={{ delay: 0.1 }}
                   className="flex justify-between text-sm"
                 >
                   <span className="text-muted-foreground">Доставка</span>
@@ -142,9 +145,10 @@ export const CartPage = () => {
                   </span>
                 </motion.div>
                 <motion.div 
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.2 }}
+            variants={fadeUp}
+            initial="hidden"
+            animate="visible"
+            transition={{ delay: 0.2 }}
                   className="flex justify-between pt-3 border-t border-border"
                 >
                   <span className="font-semibold text-foreground">Итого:</span>
@@ -155,8 +159,11 @@ export const CartPage = () => {
               </div>
               
               <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
+          variants={glowPulse}
+          initial="hidden"
+          animate="visible"
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
                 onClick={handleCheckout}
                 className="btn-primary w-full py-4 text-lg flex items-center justify-center gap-2"
               >

@@ -2,24 +2,17 @@ import { Home, ShoppingCart, UserPlus, User } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useFlowerStore } from '@/lib/store';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 
 export const BottomNav = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const cartCount = useFlowerStore((state) => state.getCartCount());
+  const isIOS = useMemo(
+    () => typeof navigator !== 'undefined' && /iP(hone|od|ad)/.test(navigator.userAgent),
+    []
+  );
   const [user, setUser] = useState<{ name: string; email: string; phone: string } | null>(null);
-
-  useEffect(() => {
-    const userData = localStorage.getItem('user');
-    if (userData) {
-      try {
-        setUser(JSON.parse(userData));
-      } catch {
-        setUser(null);
-      }
-    }
-  }, []);
 
   useEffect(() => {
     const handleStorageChange = () => {
@@ -35,14 +28,14 @@ export const BottomNav = () => {
       }
     };
 
+    handleStorageChange();
+
     window.addEventListener('storage', handleStorageChange);
     window.addEventListener('userUpdated', handleStorageChange);
-    const interval = setInterval(handleStorageChange, 100);
 
     return () => {
       window.removeEventListener('storage', handleStorageChange);
       window.removeEventListener('userUpdated', handleStorageChange);
-      clearInterval(interval);
     };
   }, []);
 
@@ -66,22 +59,22 @@ export const BottomNav = () => {
       ];
 
   return (
-    <motion.nav 
+    <motion.nav
       initial={{ y: 100 }}
       animate={{ y: 0 }}
       transition={{ type: "spring", stiffness: 300, damping: 30 }}
-      className="fixed bottom-0 left-0 right-0 z-30 px-4 pb-4 safe-area-inset-bottom"
+      className={`fixed bottom-0 left-0 right-0 z-30 px-4 pb-4 safe-area-inset-bottom motion-smooth transform-gpu ${isIOS ? 'ios-fade' : ''}`}
       style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}
     >
-      <div className="max-w-md mx-auto">
+      <div className="max-w-md mx-auto motion-smooth transform-gpu">
         <div className="glass-card rounded-2xl px-4 sm:px-6 py-3 shadow-card">
           <div className="grid grid-cols-3 items-center gap-2">
             {navItems.map((item) => (
               <motion.button
                 key={item.path}
-                whileTap={{ scale: 0.9 }}
+                whileTap={isIOS ? undefined : { scale: 0.9 }}
                 onClick={() => navigate(item.path)}
-                className={`relative flex flex-col items-center gap-1 py-1 px-2 rounded-xl transition-colors duration-300 ${
+                className={`relative flex flex-col items-center gap-1 py-1 px-2 rounded-xl transition-colors duration-300 motion-smooth transform-gpu ${
                   isActive(item.path) 
                     ? 'text-primary' 
                     : 'text-muted-foreground hover:text-foreground'
@@ -89,9 +82,9 @@ export const BottomNav = () => {
               >
                 {isActive(item.path) && (
                   <motion.div
-                    layoutId="activeTab"
-                    className="absolute inset-0 bg-purple-light rounded-xl"
-                    transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                    layoutId={isIOS ? undefined : "activeTab"}
+                    className="absolute inset-0 bg-purple-light rounded-xl motion-smooth"
+                    transition={isIOS ? { duration: 0.18, ease: [0.22, 1, 0.36, 1] } : { type: "spring", stiffness: 500, damping: 30 }}
                   />
                 )}
                 

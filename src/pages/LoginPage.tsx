@@ -1,34 +1,19 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Flower2, Mail, User, Phone, LogIn, CheckCircle2 } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { Flower2, Mail, Lock, LogIn } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
-import { useTelegram } from '@/hooks/useTelegram';
 import { apiFetch } from '@/lib/api';
 import { useAuthStore } from '@/lib/authStore';
 
-export const RegisterPage = () => {
+export const LoginPage = () => {
   const navigate = useNavigate();
-  const { user: telegramUser, isTelegram } = useTelegram();
   const setAuth = useAuthStore((state) => state.setAuth);
   const [formData, setFormData] = useState({
-    name: '',
     email: '',
-    phone: '',
     password: '',
   });
-
-  useEffect(() => {
-    if (isTelegram && telegramUser) {
-      setFormData({
-        name: telegramUser.first_name + (telegramUser.last_name ? ` ${telegramUser.last_name}` : ''),
-        email: telegramUser.username ? `${telegramUser.username}@telegram` : '',
-        phone: '',
-        password: '',
-      });
-    }
-  }, [isTelegram, telegramUser]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
@@ -40,21 +25,19 @@ export const RegisterPage = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    
-    if (!formData.name || !formData.email || !formData.phone || !formData.password) {
-      toast.error('Заполните все поля');
+
+    if (!formData.email || !formData.password) {
+      toast.error('Введите email и пароль');
       return;
     }
 
     try {
       const response = await apiFetch<{ token: string; user: { user_id: number; full_name: string; email: string; phone: string } }>(
-        '/auth/register',
+        '/auth/login',
         {
           method: 'POST',
           body: JSON.stringify({
-            fullName: formData.name,
             email: formData.email,
-            phone: formData.phone,
             password: formData.password,
           }),
         }
@@ -63,13 +46,13 @@ export const RegisterPage = () => {
       toast.success(
         <div className="flex items-center gap-2">
           <CheckCircle2 className="w-4 h-4 text-primary" />
-          <span>Регистрация успешна! Добро пожаловать, {response.user.full_name}!</span>
+          <span>С возвращением, {response.user.full_name}!</span>
         </div>
       );
-      await new Promise((resolve) => setTimeout(resolve, 400));
+      await new Promise((resolve) => setTimeout(resolve, 300));
       navigate('/catalog', { replace: true });
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Произошла ошибка при регистрации');
+      toast.error(error instanceof Error ? error.message : 'Не удалось войти');
     }
   };
 
@@ -82,7 +65,7 @@ export const RegisterPage = () => {
 
       <header className="px-4 pt-8 pb-4">
         <div className="glass-card rounded-3xl p-4 shadow-soft">
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             className="flex items-center justify-center gap-2"
@@ -93,9 +76,7 @@ export const RegisterPage = () => {
             >
               <Flower2 className="w-7 h-7 text-primary" />
             </motion.div>
-            <h1 className="text-2xl font-bold text-gradient tracking-tight">
-              FLOWER SHOP
-            </h1>
+            <h1 className="text-2xl font-bold text-gradient tracking-tight">FLOWER SHOP</h1>
           </motion.div>
         </div>
       </header>
@@ -114,11 +95,9 @@ export const RegisterPage = () => {
               transition={{ delay: 0.3 }}
               className="text-center mb-8"
             >
-              <h2 className="text-3xl font-bold text-gradient mb-2">
-                Регистрация
-              </h2>
+              <h2 className="text-3xl font-bold text-gradient mb-2">Вход</h2>
               <p className="text-muted-foreground">
-                Заполните форму, чтобы начать покупки
+                Введите email и пароль, чтобы продолжить
               </p>
             </motion.div>
 
@@ -128,31 +107,7 @@ export const RegisterPage = () => {
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.4 }}
               >
-                <label className="block text-sm font-semibold text-foreground mb-2">
-                  Имя
-                </label>
-                <div className="relative">
-                  <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                  <Input
-                    type="text"
-                    name="name"
-                    value={formData.name}
-                    onChange={handleChange}
-                    placeholder="Введите ваше имя"
-                    className="pl-12 h-12 rounded-2xl bg-secondary/50 border-2 border-transparent focus:border-primary/30 transition-all"
-                    required
-                  />
-                </div>
-              </motion.div>
-
-              <motion.div
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.5 }}
-              >
-                <label className="block text-sm font-semibold text-foreground mb-2">
-                  Email
-                </label>
+                <label className="block text-sm font-semibold text-foreground mb-2">Email</label>
                 <div className="relative">
                   <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                   <Input
@@ -170,41 +125,17 @@ export const RegisterPage = () => {
               <motion.div
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.6 }}
+                transition={{ delay: 0.5 }}
               >
-                <label className="block text-sm font-semibold text-foreground mb-2">
-                  Телефон
-                </label>
+                <label className="block text-sm font-semibold text-foreground mb-2">Пароль</label>
                 <div className="relative">
-                  <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                  <Input
-                    type="tel"
-                    name="phone"
-                    value={formData.phone}
-                    onChange={handleChange}
-                    placeholder="Введите ваш телефон"
-                    className="pl-12 h-12 rounded-2xl bg-secondary/50 border-2 border-transparent focus:border-primary/30 transition-all"
-                    required
-                  />
-                </div>
-              </motion.div>
-
-              <motion.div
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.7 }}
-              >
-                <label className="block text-sm font-semibold text-foreground mb-2">
-                  Пароль
-                </label>
-                <div className="relative">
-                  <LogIn className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                   <Input
                     type="password"
                     name="password"
                     value={formData.password}
                     onChange={handleChange}
-                    placeholder="Придумайте пароль"
+                    placeholder="Введите ваш пароль"
                     className="pl-12 h-12 rounded-2xl bg-secondary/50 border-2 border-transparent focus:border-primary/30 transition-all"
                     required
                   />
@@ -214,14 +145,14 @@ export const RegisterPage = () => {
               <motion.button
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.8 }}
+                transition={{ delay: 0.7 }}
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 type="submit"
-                className="btn-primary w-full py-4 text-lg flex items-center justify-center gap-2 mt-8"
+                className="btn-primary w-full py-4 text-lg flex items-center justify-center gap-2 mt-6"
               >
                 <LogIn className="w-5 h-5" />
-                <span>Зарегистрироваться</span>
+                <span>Войти</span>
               </motion.button>
             </form>
 
@@ -229,29 +160,21 @@ export const RegisterPage = () => {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.8 }}
-                className="mt-6 flex items-center justify-between text-sm"
-              >
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    navigate('/login', { replace: true });
-                  }}
-                  className="text-muted-foreground hover:text-primary transition-colors"
+              className="mt-6 flex items-center justify-between text-sm"
             >
-                  Уже есть аккаунт? Войти
-                </button>
               <button
                 type="button"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  navigate('/catalog', { replace: true });
-                }}
-                  className="text-muted-foreground hover:text-primary transition-colors"
+                onClick={() => navigate('/register')}
+                className="text-muted-foreground hover:text-primary transition-colors"
               >
-                  В каталог
+                Нет аккаунта? Регистрация
+              </button>
+              <button
+                type="button"
+                onClick={() => navigate('/catalog')}
+                className="text-muted-foreground hover:text-primary transition-colors"
+              >
+                В каталог
               </button>
             </motion.div>
           </div>
