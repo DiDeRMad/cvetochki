@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useFlowerStore } from '@/lib/store';
 import { useState, useEffect, useMemo } from 'react';
+import { AuthUser, useAuthStore } from '@/lib/authStore';
 
 export const BottomNav = () => {
   const navigate = useNavigate();
@@ -12,19 +13,20 @@ export const BottomNav = () => {
     () => typeof navigator !== 'undefined' && /iP(hone|od|ad)/.test(navigator.userAgent),
     []
   );
-  const [user, setUser] = useState<{ name: string; email: string; phone: string } | null>(null);
+  const authUser = useAuthStore((state) => state.user);
+  const [storedUser, setStoredUser] = useState<AuthUser | null>(null);
 
   useEffect(() => {
     const handleStorageChange = () => {
-      const userData = localStorage.getItem('user');
+      const userData = localStorage.getItem('auth_user');
       if (userData) {
         try {
-          setUser(JSON.parse(userData));
+          setStoredUser(JSON.parse(userData) as AuthUser);
         } catch {
-          setUser(null);
+          setStoredUser(null);
         }
       } else {
-        setUser(null);
+        setStoredUser(null);
       }
     };
 
@@ -38,6 +40,8 @@ export const BottomNav = () => {
       window.removeEventListener('userUpdated', handleStorageChange);
     };
   }, []);
+
+  const user = authUser || storedUser;
 
   const isActive = (path: string) => {
     if (path === '/catalog') {
