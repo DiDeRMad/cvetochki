@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Flower2, Mail, Lock, LogIn } from 'lucide-react';
+import { Flower2, Mail, Lock, LogIn, CheckCircle2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import { apiFetch } from '@/lib/api';
@@ -52,7 +52,12 @@ export const LoginPage = () => {
       await new Promise((resolve) => setTimeout(resolve, 300));
       navigate('/catalog', { replace: true });
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Не удалось войти');
+      const msg = error instanceof Error ? error.message : 'Не удалось войти';
+      if (/Invalid credentials/i.test(msg)) {
+        toast.error('Неверный email или пароль');
+      } else {
+        toast.error('Не удалось войти. Попробуйте ещё раз.');
+      }
     }
   };
 

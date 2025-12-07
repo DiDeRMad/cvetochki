@@ -69,7 +69,12 @@ export const RegisterPage = () => {
       await new Promise((resolve) => setTimeout(resolve, 400));
       navigate('/catalog', { replace: true });
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Произошла ошибка при регистрации');
+      const msg = error instanceof Error ? error.message : 'Произошла ошибка при регистрации';
+      if (/Email already in use/i.test(msg) || /duplicate/i.test(msg) || /уже/i.test(msg)) {
+        toast.error('Такой email уже зарегистрирован. Попробуйте войти.');
+      } else {
+        toast.error('Не удалось зарегистрироваться. Проверьте данные и повторите.');
+      }
     }
   };
 
