@@ -42,6 +42,7 @@ export const BottomNav = () => {
   }, []);
 
   const user = authUser || storedUser;
+  const userLabel = user?.full_name || user?.email || user?.phone || '';
 
   const isActive = (path: string) => {
     if (path === '/catalog') {
@@ -53,7 +54,7 @@ export const BottomNav = () => {
   const navItems = user
     ? [
         { path: '/catalog', icon: Home, label: 'Главная' },
-        { path: '/profile', icon: User, label: user.name.split(' ')[0] || user.name, isProfile: true },
+        { path: '/profile', icon: User, label: userLabel.split(' ')[0] || userLabel, isProfile: true },
         { path: '/cart', icon: ShoppingCart, label: 'Корзина', badge: cartCount },
       ]
     : [
