@@ -5,6 +5,7 @@ dotenv.config();
 
 const products = [
   {
+    id: 1,
     name: 'Розовые розы',
     description: 'Элегантный букет из нежных розовых роз премиум-класса с декоративной зеленью.',
     price: 2500,
@@ -16,6 +17,7 @@ const products = [
     categories: ['roses'],
   },
   {
+    id: 2,
     name: 'Красные тюльпаны',
     description: 'Яркий весенний букет из свежих красных тюльпанов.',
     price: 1200,
@@ -26,6 +28,7 @@ const products = [
     categories: ['tulips'],
   },
   {
+    id: 3,
     name: 'Пастельный шарм',
     description: 'Нежная композиция из пастельных цветов с эвкалиптом.',
     price: 1800,
@@ -36,6 +39,7 @@ const products = [
     categories: ['pastel'],
   },
   {
+    id: 4,
     name: 'Солнечные подсолнухи',
     description: 'Яркие подсолнухи премиум-качества в крафтовой упаковке.',
     price: 1600,
@@ -46,6 +50,7 @@ const products = [
     categories: ['sunflowers'],
   },
   {
+    id: 5,
     name: 'Белые лилии',
     description: 'Изысканные белые лилии премиум-класса – символ чистоты и элегантности.',
     price: 2200,
@@ -56,6 +61,7 @@ const products = [
     categories: ['lilies'],
   },
   {
+    id: 6,
     name: 'Полевой микс',
     description: 'Жизнерадостный букет из полевых цветов различных оттенков.',
     price: 1400,
@@ -66,6 +72,7 @@ const products = [
     categories: ['wild'],
   },
   {
+    id: 7,
     name: 'Красные розы',
     description: 'Классический букет из алых роз премиум-класса.',
     price: 2800,
@@ -76,6 +83,7 @@ const products = [
     categories: ['roses'],
   },
   {
+    id: 8,
     name: 'Желтые тюльпаны',
     description: 'Солнечный букет из ярких желтых тюльпанов.',
     price: 1300,
@@ -86,6 +94,7 @@ const products = [
     categories: ['tulips'],
   },
   {
+    id: 9,
     name: 'Романтический микс',
     description: 'Романтическая композиция из розовых и белых цветов с эвкалиптом.',
     price: 2000,
@@ -96,6 +105,7 @@ const products = [
     categories: ['pastel'],
   },
   {
+    id: 10,
     name: 'Тропический микс',
     description: 'Экзотическая композиция из тропических цветов с декоративной зеленью.',
     price: 2400,
@@ -156,11 +166,20 @@ async function seed() {
 
     for (const product of products) {
       const inserted = await client.query(
-        'insert into products(name, description, price, status) values ($1,$2,$3,$4) returning product_id',
-        [product.name, product.description, product.price, product.status]
+        `insert into products(product_id, name, description, price, status)
+         values ($1,$2,$3,$4,$5)
+         on conflict (product_id) do update
+           set name = excluded.name,
+               description = excluded.description,
+               price = excluded.price,
+               status = excluded.status
+         returning product_id`,
+        [product.id, product.name, product.description, product.price, product.status]
       );
       const productId = inserted.rows[0].product_id;
 
+      // refresh images to avoid duplicates/stale links
+      await client.query('delete from product_images where product_id = $1', [productId]);
       for (let i = 0; i < product.images.length; i++) {
         await client.query(
           'insert into product_images(product_id, url, sort_order) values ($1,$2,$3)',
@@ -168,6 +187,8 @@ async function seed() {
         );
       }
 
+      // refresh category links
+      await client.query('delete from product_categories where product_id = $1', [productId]);
       for (const cat of product.categories) {
         const catId = categoryIds.get(cat);
         if (catId) {
@@ -178,6 +199,10 @@ async function seed() {
         }
       }
     }
+
+    await client.query(
+      `select setval('products_product_id_seq', (select coalesce(max(product_id), 1) from products))`
+    );
 
     await client.query('commit');
     process.stdout.write('Seed completed\n');

@@ -166,6 +166,27 @@ router.delete('/last', authGuard, async (req: AuthRequest, res) => {
   }
 });
 
+router.delete('/:id', authGuard, async (req: AuthRequest, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id) || id <= 0) {
+    return res.status(400).json({ message: 'Invalid order id' });
+  }
+  const client = await pool.connect();
+  try {
+    const found = await client.query(
+      'select order_id from orders where order_id = $1 and user_id = $2',
+      [id, req.userId]
+    );
+    if (!found.rowCount) {
+      return res.status(404).json({ message: 'Заказ не найден' });
+    }
+    await client.query('delete from orders where order_id = $1 and user_id = $2', [id, req.userId]);
+    return res.status(204).send();
+  } finally {
+    client.release();
+  }
+});
+
 export default router;
 
 

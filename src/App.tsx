@@ -47,11 +47,14 @@ const AppContent = () => {
   }, [webApp, themeParams]);
 
   const welcomeShown = localStorage.getItem('welcomeShown') === 'true';
-  const user = localStorage.getItem('user');
+  const token = localStorage.getItem('token');
+  const authUser = localStorage.getItem('auth_user');
+  const legacyUser = localStorage.getItem('user');
+  const hasAuth = (!!token && !!authUser) || !!legacyUser;
   
   const shouldShowWelcome = !welcomeShown && location.pathname === '/';
-  const shouldRedirectToRegister = welcomeShown && !user && location.pathname === '/';
-  const shouldRedirectToCatalog = welcomeShown && user && location.pathname === '/';
+  const shouldRedirectToRegister = welcomeShown && !hasAuth && location.pathname === '/';
+  const shouldRedirectToCatalog = welcomeShown && hasAuth && location.pathname === '/';
   const isWelcomePage = location.pathname === '/welcome' || shouldShowWelcome;
 
   if (!isInitialized) {

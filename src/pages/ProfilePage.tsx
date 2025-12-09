@@ -97,11 +97,11 @@ export const ProfilePage = () => {
     if (!token || !lastOrder) return;
     setIsDeletingOrder(true);
     try {
-      await apiFetch('/orders/last', { method: 'DELETE' });
+      await apiFetch(`/orders/${lastOrder.id}`, { method: 'DELETE' });
       setLastOrder(null);
-      toast.success('Последний заказ удалён');
+      toast.success('Заказ отменён');
     } catch (error) {
-      const msg = error instanceof Error ? error.message : 'Не удалось удалить заказ';
+      const msg = error instanceof Error ? error.message : 'Не удалось отменить заказ';
       toast.error(msg);
     } finally {
       setIsDeletingOrder(false);
@@ -309,7 +309,7 @@ export const ProfilePage = () => {
                     className="flex items-center gap-2 text-sm text-destructive hover:text-destructive/80 rounded-xl px-3 py-2 bg-destructive/10 disabled:opacity-60"
                   >
                     <Trash2 className="w-4 h-4" />
-                    <span>{isDeletingOrder ? 'Удаляем...' : 'Удалить последний заказ'}</span>
+                    <span>{isDeletingOrder ? 'Отменяем...' : 'Отменить заказ'}</span>
                   </motion.button>
                 </div>
                 <div className="grid grid-cols-1 gap-3">
