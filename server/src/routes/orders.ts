@@ -28,6 +28,13 @@ router.post('/', authGuard, async (req: AuthRequest, res) => {
   try {
     await client.query('begin');
 
+    
+    const userCheck = await client.query('select user_id from users where user_id = $1 limit 1', [req.userId]);
+    if (!userCheck.rowCount) {
+      await client.query('rollback');
+      return res.status(401).json({ message: 'Пользователь не найден, войдите заново' });
+    }
+
     const productIds = items.map((i) => i.productId);
     const products = await client.query(
       'select product_id, price, status from products where product_id = any($1)',
