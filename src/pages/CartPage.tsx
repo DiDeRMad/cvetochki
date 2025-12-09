@@ -103,7 +103,11 @@ export const CartPage = () => {
             >
               <AnimatePresence mode="popLayout" initial={false}>
                 {cart.map((item, index) => (
-                  <CartItemCard key={item.product.id} item={item} index={index} />
+                  <CartItemCard
+                    key={`${item.product.id}-${item.addons.join('|')}-${index}`}
+                    item={item}
+                    index={index}
+                  />
                 ))}
               </AnimatePresence>
             </motion.div>

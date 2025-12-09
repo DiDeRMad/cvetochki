@@ -68,15 +68,15 @@ export const CartItemCard = ({ item, index = 0 }: CartItemProps) => {
         <QuantityControl
           size="sm"
           quantity={item.quantity}
-          onIncrease={() => updateQuantity(item.product.id, item.quantity + 1)}
-          onDecrease={() => updateQuantity(item.product.id, item.quantity - 1)}
+          onIncrease={() => updateQuantity(index, item.quantity + 1)}
+          onDecrease={() => updateQuantity(index, item.quantity - 1)}
         />
       </div>
       
       <motion.button
         whileHover={{ scale: 1.1, rotate: 10 }}
         whileTap={{ scale: 0.9 }}
-        onClick={() => removeFromCart(item.product.id)}
+        onClick={() => removeFromCart(index)}
         className="self-start p-2.5 rounded-xl text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all duration-300"
       >
         <Trash2 className="w-5 h-5" />

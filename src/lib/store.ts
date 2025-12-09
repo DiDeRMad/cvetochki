@@ -69,8 +69,8 @@ interface FlowerStore {
   shippingPrice: number;
   lastOrder: OrderSummary | null;
   addToCart: (product: Product, quantity?: number, addons?: string[]) => void;
-  removeFromCart: (productId: string) => void;
-  updateQuantity: (productId: string, quantity: number) => void;
+  removeFromCart: (index: number) => void;
+  updateQuantity: (index: number, quantity: number) => void;
   getCartTotal: () => number;
   getCartCount: () => number;
   getCartTotals: () => { subtotal: number; shipping: number; total: number };
@@ -78,6 +78,14 @@ interface FlowerStore {
   createOrder: (details: DeliveryDetails) => OrderSummary | null;
   setLastOrder: (order: OrderSummary | null) => void;
 }
+
+const normalizeAddons = (addons: string[]) => [...addons].sort();
+const addonsEqual = (a: string[], b: string[]) => {
+  const aSorted = normalizeAddons(a);
+  const bSorted = normalizeAddons(b);
+  if (aSorted.length !== bSorted.length) return false;
+  return aSorted.every((val, idx) => val === bSorted[idx]);
+};
 
 export const products: Product[] = [
   {
@@ -177,34 +185,39 @@ export const useFlowerStore = create<FlowerStore>()(
   
   addToCart: (product, quantity = 1, addons = []) => {
     set((state) => {
-      const existingItem = state.cart.find((item) => item.product.id === product.id);
-      if (existingItem) {
+      const addonsNormalized = normalizeAddons(addons);
+      const existingIndex = state.cart.findIndex(
+        (item) => item.product.id === product.id && addonsEqual(item.addons, addonsNormalized)
+      );
+
+      if (existingIndex !== -1) {
         return {
-          cart: state.cart.map((item) =>
-            item.product.id === product.id
-              ? { ...item, quantity: item.quantity + quantity, addons }
+          cart: state.cart.map((item, idx) =>
+            idx === existingIndex
+              ? { ...item, quantity: item.quantity + quantity, addons: addonsNormalized }
               : item
           ),
         };
       }
-      return { cart: [...state.cart, { product, quantity, addons }] };
+
+      return { cart: [...state.cart, { product, quantity, addons: addonsNormalized }] };
     });
   },
   
-  removeFromCart: (productId) => {
+  removeFromCart: (index) => {
     set((state) => ({
-      cart: state.cart.filter((item) => item.product.id !== productId),
+      cart: state.cart.filter((_, idx) => idx !== index),
     }));
   },
   
-  updateQuantity: (productId, quantity) => {
+  updateQuantity: (index, quantity) => {
     if (quantity < 1) {
-      get().removeFromCart(productId);
+      get().removeFromCart(index);
       return;
     }
     set((state) => ({
-      cart: state.cart.map((item) =>
-        item.product.id === productId ? { ...item, quantity } : item
+      cart: state.cart.map((item, idx) =>
+        idx === index ? { ...item, quantity } : item
       ),
     }));
   },
@@ -278,15 +291,34 @@ export const useFlowerStore = create<FlowerStore>()(
     }),
     {
       name: 'flower-store',
-      version: 2,
+      version: 3,
       migrate: (state) => {
         const typedState = state as unknown as FlowerStore;
-        const repairedCart = (typedState?.cart || [])
-          .map((item) => {
-            const product = products.find((p) => p.id === item.product.id);
-            return product ? { ...item, product } : null;
-          })
-          .filter((item): item is CartItem => Boolean(item));
+        const repairedCart: CartItem[] = [];
+
+        (typedState?.cart || []).forEach((item) => {
+          const product = products.find((p) => p.id === item.product.id);
+          if (!product) return;
+
+          const normalizedAddons = normalizeAddons(item.addons || []);
+          const existingIndex = repairedCart.findIndex(
+            (cartItem) => cartItem.product.id === product.id && addonsEqual(cartItem.addons, normalizedAddons)
+          );
+
+          if (existingIndex !== -1) {
+            repairedCart[existingIndex] = {
+              ...repairedCart[existingIndex],
+              quantity: repairedCart[existingIndex].quantity + (item.quantity || 1),
+            };
+          } else {
+            repairedCart.push({
+              product,
+              quantity: item.quantity || 1,
+              addons: normalizedAddons,
+            });
+          }
+        });
+
         return {
           ...typedState,
           cart: repairedCart,
