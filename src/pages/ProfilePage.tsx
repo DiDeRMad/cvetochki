@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, User, Mail, Phone, LogOut, Flower2, MapPin, Clock, Receipt, Trash2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
-import { addonPrices, useFlowerStore } from '@/lib/store';
 import { apiFetch } from '@/lib/api';
 import { AuthUser, useAuthStore } from '@/lib/authStore';
 import { fadeUp, glowPulse, staggerContainer } from '@/lib/motion';
@@ -15,29 +14,34 @@ export const ProfilePage = () => {
   );
   const navigate = useNavigate();
   const [user, setUser] = useState<{ name: string; email: string; phone: string } | null>(null);
-  const { lastOrder } = useFlowerStore();
   const token = useAuthStore((state) => state.token);
   const authUser = useAuthStore((state) => state.user);
   const setAuth = useAuthStore((state) => state.setAuth);
   const clearAuth = useAuthStore((state) => state.clear);
-  const setLastOrder = useFlowerStore((state) => state.setLastOrder);
   const [orders, setOrders] = useState<any[]>([]);
-  const [isDeletingOrder, setIsDeletingOrder] = useState(false);
   const [isClearingOrders, setIsClearingOrders] = useState(false);
+  const [cancellingId, setCancellingId] = useState<string | null>(null);
 
-  const fetchHistory = async () => {
-    if (!token) return;
-    try {
-      const history = await apiFetch<any[]>('/orders/history');
-      const unique = (history || []).reduce((acc: any[], o) => {
-        const exists = acc.find((x) => String(x.id) === String(o.id));
-        return exists ? acc : [...acc, o];
-      }, []);
-      setOrders(unique);
-    } catch {
-      setOrders([]);
-    }
-  };
+  const fetchHistory = useMemo(
+    () => async () => {
+      if (!token) return;
+      try {
+        const history = await apiFetch<any[]>('/orders/history');
+        const seen = new Set<string>();
+        const unique = [];
+        for (const o of history || []) {
+          const key = String(o.id);
+          if (seen.has(key)) continue;
+          seen.add(key);
+          unique.push(o);
+        }
+        setOrders(unique);
+      } catch {
+        setOrders([]);
+      }
+    },
+    [token]
+  );
 
   useEffect(() => {
     if (authUser) {
@@ -70,62 +74,21 @@ export const ProfilePage = () => {
   }, [token, authUser, setAuth]);
 
   useEffect(() => {
-    const loadLastOrder = async () => {
-      if (!token) return;
-      try {
-        const order = await apiFetch<any>('/orders/last');
-        if (order) {
-          setLastOrder({
-            id: String(order.id),
-            items: (order.items || []).map((i: any) => ({
-              product: {
-                id: String(i.productid || i.productId),
-                name: 'Товар',
-                price: Number(i.unitprice || i.unitPrice) + Number(i.addonsprice || i.addonsPrice || 0),
-                image: '',
-                description: '',
-                images: [],
-              },
-              quantity: i.quantity,
-              addons: i.addons || [],
-            })),
-            totals: {
-              subtotal: Number(order.subtotal),
-              shipping: Number(order.shipping),
-              total: Number(order.total),
-            },
-            delivery: {
-              city: order.city,
-              address: order.address,
-              time: order.time,
-            },
-            createdAt: order.created_at || new Date().toISOString(),
-          });
-        }
-      } catch {
-        setLastOrder(null);
-      }
-    };
-    loadLastOrder();
-  }, [token, setLastOrder]);
-
-  useEffect(() => {
     fetchHistory();
-  }, [token]);
+  }, [token, fetchHistory]);
 
-  const handleDeleteLastOrder = async () => {
-    if (!token || !lastOrder) return;
-    setIsDeletingOrder(true);
+  const handleCancelOrder = async (id: string) => {
+    if (!token) return;
+    setCancellingId(id);
     try {
-      await apiFetch(`/orders/${lastOrder.id}`, { method: 'DELETE' });
-      setLastOrder(null);
+      await apiFetch(`/orders/${id}`, { method: 'DELETE' });
       await fetchHistory();
-      toast.success('Заказ отменён (перенесён в историю)');
+      toast.success('Заказ отменён (в истории статус cancelled)');
     } catch (error) {
       const msg = error instanceof Error ? error.message : 'Не удалось отменить заказ';
       toast.error(msg);
     } finally {
-      setIsDeletingOrder(false);
+      setCancellingId(null);
     }
   };
 
@@ -134,7 +97,6 @@ export const ProfilePage = () => {
     setIsClearingOrders(true);
     try {
       await apiFetch('/orders', { method: 'DELETE' });
-      setLastOrder(null);
       setOrders([]);
       toast.success('История заказов очищена');
     } catch (error) {
@@ -373,107 +335,26 @@ export const ProfilePage = () => {
                       <span>Итого</span>
                       <span className="text-foreground font-semibold">{Number(order.total).toLocaleString('ru-RU')} ₽</span>
                     </div>
+                    <div className="flex justify-end pt-1">
+                      <motion.button
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={() => handleCancelOrder(String(order.id))}
+                        disabled={order.status === 'cancelled' || cancellingId === String(order.id)}
+                        className="flex items-center gap-2 text-sm text-destructive hover:text-destructive/80 rounded-xl px-3 py-2 bg-destructive/10 disabled:opacity-60"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                        <span>
+                          {order.status === 'cancelled'
+                            ? 'Уже отменён'
+                            : cancellingId === String(order.id)
+                            ? 'Отменяем...'
+                            : 'Отменить'}
+                        </span>
+                      </motion.button>
+                    </div>
                   </div>
                 ))}
-              </div>
-            )}
-          </motion.div>
-
-          <motion.div
-            variants={staggerContainer}
-            initial="hidden"
-            animate="visible"
-            className="glass-card rounded-3xl p-6 shadow-soft mb-6 space-y-4 motion-smooth transform-gpu"
-          >
-            <div className="flex items-center gap-2">
-              <Receipt className="w-5 h-5 text-primary" />
-              <h3 className="text-lg font-semibold text-foreground">Последний заказ</h3>
-            </div>
-
-            {!lastOrder && (
-              <p className="text-muted-foreground text-sm">Заказов пока нет. Соберите корзину и оформите доставку.</p>
-            )}
-
-            {lastOrder && (
-              <div className="space-y-4">
-                <div className="flex items-center justify-between text-sm text-muted-foreground">
-                  <span>Номер</span>
-                  <span className="text-foreground font-semibold">{lastOrder.id}</span>
-                </div>
-                <div className="flex items-center justify-between text-sm text-muted-foreground">
-                  <span>Статус</span>
-                  <span className="text-foreground font-semibold">
-                    {orders.find((o) => String(o.id) === String(lastOrder.id))?.status || 'active'}
-                  </span>
-                </div>
-                <div className="flex justify-end">
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={handleDeleteLastOrder}
-                    disabled={isDeletingOrder}
-                    className="flex items-center gap-2 text-sm text-destructive hover:text-destructive/80 rounded-xl px-3 py-2 bg-destructive/10 disabled:opacity-60"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                    <span>{isDeletingOrder ? 'Отменяем...' : 'Отменить заказ'}</span>
-                  </motion.button>
-                </div>
-                <div className="grid grid-cols-1 gap-3">
-                  <div className="rounded-2xl bg-secondary/60 p-3">
-                    <p className="text-xs text-muted-foreground uppercase tracking-wide">Доставка</p>
-                    <div className="flex items-center gap-2 text-sm text-foreground">
-                      <MapPin className="w-4 h-4 text-primary" />
-                      <span>{lastOrder.delivery.city}, {lastOrder.delivery.address}</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-sm text-foreground mt-1">
-                      <Clock className="w-4 h-4 text-primary" />
-                      <span>{lastOrder.delivery.time}</span>
-                    </div>
-                  </div>
-
-                  <div className="space-y-2 rounded-2xl bg-secondary/60 p-3">
-                    <p className="text-xs text-muted-foreground uppercase tracking-wide">Товары</p>
-                    <div className="space-y-2">
-                      {lastOrder.items.map((item) => {
-                        const addonsSum = item.addons.reduce(
-                          (sum, id) => sum + (addonPrices[id] || 0),
-                          0
-                        );
-                        const itemTotal = (item.product.price + addonsSum) * item.quantity;
-                        return (
-                          <div key={item.product.id} className="flex items-start justify-between">
-                            <div className="flex-1 mr-3">
-                              <p className="text-sm font-semibold text-foreground leading-tight">{item.product.name}</p>
-                              <p className="text-xs text-muted-foreground">
-                                {item.quantity} шт. · {(item.product.price + addonsSum).toLocaleString('ru-RU')} ₽ за ед.
-                              </p>
-                            </div>
-                            <span className="text-sm font-semibold text-gradient whitespace-nowrap">
-                              {itemTotal.toLocaleString('ru-RU')} ₽
-                            </span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="space-y-2 pt-2 border-t border-border">
-                  <div className="flex justify-between text-sm text-muted-foreground">
-                    <span>Подытог</span>
-                    <span className="text-foreground font-medium">{lastOrder.totals.subtotal.toLocaleString('ru-RU')} ₽</span>
-                  </div>
-                  <div className="flex justify-between text-sm text-muted-foreground">
-                    <span>Доставка</span>
-                    <span className="text-foreground font-medium">{lastOrder.totals.shipping.toLocaleString('ru-RU')} ₽</span>
-                  </div>
-                  <div className="flex justify-between items-center pt-2 border-t border-border">
-                    <span className="font-semibold text-foreground">Итого</span>
-                    <span className="font-bold text-2xl text-gradient">
-                      {lastOrder.totals.total.toLocaleString('ru-RU')} ₽
-                    </span>
-                  </div>
-                </div>
               </div>
             )}
           </motion.div>
