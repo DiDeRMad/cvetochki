@@ -73,26 +73,24 @@ export const ProductCard = ({ product, index = 0 }: ProductCardProps) => {
               })}
         />
 
-        <motion.button
-          {...(isIOS
-            ? {}
-            : {
-                initial: { scale: 0.8, opacity: 0 },
-                animate: { scale: 1, opacity: 1 },
-                transition: { delay: index * 0.08 + 0.15, type: "tween", duration: 0.2, ease: [0.22, 1, 0.36, 1] },
-                whileHover: { scale: 1.05 },
-              })}
-          whileTap={{ scale: 0.92 }}
-          onClick={handleToggleFavorite}
-          className={`absolute top-3 right-3 w-10 h-10 rounded-full backdrop-blur-md border shadow-sm flex items-center justify-center transition-colors ${
-            isFavorite
-              ? 'bg-white/90 border-rose-200 text-rose-500'
-              : 'bg-background/70 border-white/20 text-white'
-          }`}
-          aria-label={isFavorite ? 'Убрать из избранного' : 'В избранное'}
-        >
-          <Heart className={`w-5 h-5 ${isFavorite ? 'fill-rose-500' : ''}`} />
-        </motion.button>
+        {isFavorite && (
+          <motion.button
+            {...(isIOS
+              ? {}
+              : {
+                  initial: { scale: 0.8, opacity: 0 },
+                  animate: { scale: 1, opacity: 1 },
+                  transition: { delay: index * 0.08 + 0.15, type: "tween", duration: 0.2, ease: [0.22, 1, 0.36, 1] },
+                  whileHover: { scale: 1.05 },
+                })}
+            whileTap={{ scale: 0.92 }}
+            onClick={handleToggleFavorite}
+            className="absolute top-3 right-3 w-10 h-10 rounded-full backdrop-blur-md border shadow-sm flex items-center justify-center bg-white/90 border-rose-200 text-rose-500"
+            aria-label="Убрать из избранного"
+          >
+            <Heart className="w-5 h-5 fill-rose-500" />
+          </motion.button>
+        )}
 
         <div className={`absolute inset-0 bg-gradient-to-t from-foreground/20 via-transparent to-transparent ${isIOS ? '' : 'opacity-0 group-hover:opacity-100 transition-opacity duration-150'}`} />
         
