@@ -42,6 +42,7 @@ export const CheckoutPage = () => {
   const navigate = useNavigate();
   const { cart, getCartTotals } = useFlowerStore();
   const { token } = useAuthStore();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const { subtotal, shipping, total } = getCartTotals();
 
@@ -62,6 +63,7 @@ export const CheckoutPage = () => {
   };
 
   const handleConfirm = async () => {
+    if (isSubmitting) return;
     if (!city.trim() || !address.trim() || !deliveryTime.trim()) {
       toast.error('Заполните город, адрес и время доставки');
       return;
@@ -80,6 +82,7 @@ export const CheckoutPage = () => {
     }
 
     try {
+      setIsSubmitting(true);
       const response = await apiFetch<{
         id: number;
         totals: { subtotal: number; shipping: number; total: number };
@@ -116,6 +119,8 @@ export const CheckoutPage = () => {
       navigate('/order-confirmation');
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Не удалось оформить заказ');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -314,10 +319,11 @@ export const CheckoutPage = () => {
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             onClick={handleConfirm}
-            className="btn-primary w-full py-4 text-lg flex items-center justify-center gap-2"
+            disabled={isSubmitting}
+            className="btn-primary w-full py-4 text-lg flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
           >
             <ShieldCheck className="w-5 h-5" />
-            <span>Подтвердить заказ</span>
+            <span>{isSubmitting ? 'Отправляем...' : 'Подтвердить заказ'}</span>
           </motion.button>
         </div>
       </motion.div>
