@@ -173,6 +173,16 @@ router.delete('/last', authGuard, async (req: AuthRequest, res) => {
   }
 });
 
+router.delete('/', authGuard, async (req: AuthRequest, res) => {
+  const client = await pool.connect();
+  try {
+    await client.query('delete from orders where user_id = $1', [req.userId]);
+    return res.status(204).send();
+  } finally {
+    client.release();
+  }
+});
+
 router.delete('/:id', authGuard, async (req: AuthRequest, res) => {
   const id = Number(req.params.id);
   if (!Number.isInteger(id) || id <= 0) {
