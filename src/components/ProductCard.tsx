@@ -1,4 +1,4 @@
-import { Plus, ShoppingCart } from 'lucide-react';
+import { Plus, ShoppingCart, Heart } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Product, useFlowerStore } from '@/lib/store';
 import { useNavigate } from 'react-router-dom';
@@ -13,6 +13,8 @@ interface ProductCardProps {
 export const ProductCard = ({ product, index = 0 }: ProductCardProps) => {
   const navigate = useNavigate();
   const addToCart = useFlowerStore((state) => state.addToCart);
+  const toggleFavorite = useFlowerStore((state) => state.toggleFavorite);
+  const isFavorite = useFlowerStore((state) => state.favorites.includes(product.id));
   const isIOS = useMemo(
     () => typeof navigator !== 'undefined' && /iP(hone|od|ad)/.test(navigator.userAgent),
     []
@@ -27,6 +29,11 @@ export const ProductCard = ({ product, index = 0 }: ProductCardProps) => {
         <span>Добавлено в корзину</span>
       </div>
     );
+  };
+
+  const handleToggleFavorite = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    toggleFavorite(product.id);
   };
 
   return (
@@ -65,7 +72,26 @@ export const ProductCard = ({ product, index = 0 }: ProductCardProps) => {
                 transition: { duration: 0.08, ease: [0.25, 0.8, 0.35, 1] },
               })}
         />
-        
+
+        <motion.button
+          {...(isIOS
+            ? {}
+            : {
+                initial: { scale: 0.8, opacity: 0 },
+                animate: { scale: 1, opacity: 1 },
+                transition: { delay: index * 0.08 + 0.15, type: "tween", duration: 0.2, ease: [0.22, 1, 0.36, 1] },
+                whileHover: { scale: 1.05 },
+              })}
+          whileTap={{ scale: 0.92 }}
+          onClick={handleToggleFavorite}
+          className={`absolute top-3 right-3 w-10 h-10 rounded-full backdrop-blur-md bg-background/70 border border-white/20 shadow-sm flex items-center justify-center transition-colors ${
+            isFavorite ? 'text-rose-500 bg-white/90' : 'text-white'
+          }`}
+          aria-label={isFavorite ? 'Убрать из избранного' : 'В избранное'}
+        >
+          <Heart className={`w-5 h-5 ${isFavorite ? 'fill-rose-500' : ''}`} />
+        </motion.button>
+
         <div className={`absolute inset-0 bg-gradient-to-t from-foreground/20 via-transparent to-transparent ${isIOS ? '' : 'opacity-0 group-hover:opacity-100 transition-opacity duration-150'}`} />
         
         <motion.button

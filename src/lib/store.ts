@@ -66,11 +66,14 @@ export interface OrderSummary {
 interface FlowerStore {
   products: Product[];
   cart: CartItem[];
+  favorites: string[];
   shippingPrice: number;
   lastOrder: OrderSummary | null;
   addToCart: (product: Product, quantity?: number, addons?: string[]) => void;
   removeFromCart: (index: number) => void;
   updateQuantity: (index: number, quantity: number) => void;
+  toggleFavorite: (productId: string) => void;
+  isFavorite: (productId: string) => boolean;
   getCartTotal: () => number;
   getCartCount: () => number;
   getCartTotals: () => { subtotal: number; shipping: number; total: number };
@@ -180,6 +183,7 @@ export const useFlowerStore = create<FlowerStore>()(
     (set, get) => ({
   products,
   cart: [],
+  favorites: [],
   shippingPrice: 300,
   lastOrder: null,
   
@@ -221,6 +225,19 @@ export const useFlowerStore = create<FlowerStore>()(
       ),
     }));
   },
+
+  toggleFavorite: (productId) => {
+    set((state) => {
+      const exists = state.favorites.includes(productId);
+      return {
+        favorites: exists
+          ? state.favorites.filter((id) => id !== productId)
+          : [...state.favorites, productId],
+      };
+    });
+  },
+
+  isFavorite: (productId) => get().favorites.includes(productId),
   
   getCartTotal: () => {
     return get().cart.reduce((total, item) => {
@@ -291,10 +308,13 @@ export const useFlowerStore = create<FlowerStore>()(
     }),
     {
       name: 'flower-store',
-      version: 3,
+      version: 4,
       migrate: (state) => {
         const typedState = state as unknown as FlowerStore;
         const repairedCart: CartItem[] = [];
+        const favorites = Array.isArray((typedState as any)?.favorites)
+          ? (typedState as any).favorites.filter((id: unknown): id is string => typeof id === 'string')
+          : [];
 
         (typedState?.cart || []).forEach((item) => {
           const product = products.find((p) => p.id === item.product.id);
@@ -322,11 +342,13 @@ export const useFlowerStore = create<FlowerStore>()(
         return {
           ...typedState,
           cart: repairedCart,
+          favorites,
         };
       },
       partialize: (state) => ({
         cart: state.cart,
         lastOrder: state.lastOrder,
+        favorites: state.favorites,
       }),
     }
   )

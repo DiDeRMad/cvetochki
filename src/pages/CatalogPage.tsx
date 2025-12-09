@@ -1,9 +1,9 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Search, SlidersHorizontal, Flower2, Flower, Sun, Palette, Wheat } from 'lucide-react';
+import { Search, SlidersHorizontal, Flower2, Flower, Sun, Palette, Wheat, Heart } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ProductCard } from '@/components/ProductCard';
 import { ProductCardSkeleton } from '@/components/ProductCardSkeleton';
-import { products } from '@/lib/store';
+import { products, useFlowerStore } from '@/lib/store';
 import {
   Dialog,
   DialogContent,
@@ -19,6 +19,7 @@ import { useNavigate } from 'react-router-dom';
 interface Filters {
   priceRange: [number, number];
   categories: string[];
+  favoritesOnly: boolean;
 }
 
 const categories = [
@@ -39,12 +40,15 @@ export const CatalogPage = () => {
     []
   );
   const navigate = useNavigate();
+  const favorites = useFlowerStore((state) => state.favorites);
+  const favoritesSet = useMemo(() => new Set(favorites), [favorites]);
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
   const [filters, setFilters] = useState<Filters>({
     priceRange: [minPrice, maxPrice],
     categories: [],
+    favoritesOnly: false,
   });
 
   useEffect(() => {
@@ -67,7 +71,8 @@ export const CatalogPage = () => {
     const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesPrice = product.price >= filters.priceRange[0] && product.price <= filters.priceRange[1];
     const matchesCategory = filters.categories.length === 0 || filters.categories.includes(getProductCategory(product.name));
-    return matchesSearch && matchesPrice && matchesCategory;
+    const matchesFavorite = !filters.favoritesOnly || favoritesSet.has(product.id);
+    return matchesSearch && matchesPrice && matchesCategory && matchesFavorite;
   });
 
   const handleCategoryToggle = (categoryId: string) => {
@@ -83,11 +88,13 @@ export const CatalogPage = () => {
     setFilters({
       priceRange: [minPrice, maxPrice],
       categories: [],
+      favoritesOnly: false,
     });
   };
 
   const activeFiltersCount = filters.categories.length + 
-    (filters.priceRange[0] !== minPrice || filters.priceRange[1] !== maxPrice ? 1 : 0);
+    (filters.priceRange[0] !== minPrice || filters.priceRange[1] !== maxPrice ? 1 : 0) +
+    (filters.favoritesOnly ? 1 : 0);
 
   const iosFadeTransition = { type: "tween" as const, duration: 0.2, ease: [0.25, 0.8, 0.35, 1] as const };
   const motionListProps = isIOS
@@ -258,6 +265,33 @@ export const CatalogPage = () => {
           </DialogHeader>
           
           <div className="space-y-6 py-4">
+            <div>
+              <h3 className="text-sm font-semibold text-foreground mb-3 uppercase tracking-wide">
+                Избранное
+              </h3>
+              <motion.div
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                className="flex items-center space-x-3"
+              >
+                <Checkbox
+                  id="favorites"
+                  checked={filters.favoritesOnly}
+                  onCheckedChange={(checked) =>
+                    setFilters((prev) => ({ ...prev, favoritesOnly: Boolean(checked) }))
+                  }
+                  className="border-2 border-primary data-[state=checked]:bg-primary"
+                />
+                <label
+                  htmlFor="favorites"
+                  className="flex items-center gap-2 text-sm font-medium leading-none cursor-pointer flex-1"
+                >
+                  <Heart className={`w-4 h-4 ${filters.favoritesOnly ? 'text-primary' : 'text-muted-foreground'}`} />
+                  <span className="text-foreground">Только избранные</span>
+                </label>
+              </motion.div>
+            </div>
+
             <div>
               <h3 className="text-sm font-semibold text-foreground mb-3 uppercase tracking-wide">
                 Цена
