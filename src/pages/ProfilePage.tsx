@@ -21,6 +21,7 @@ export const ProfilePage = () => {
   const setAuth = useAuthStore((state) => state.setAuth);
   const clearAuth = useAuthStore((state) => state.clear);
   const setLastOrder = useFlowerStore((state) => state.setLastOrder);
+  const [orders, setOrders] = useState<any[]>([]);
   const [isDeletingOrder, setIsDeletingOrder] = useState(false);
   const [isClearingOrders, setIsClearingOrders] = useState(false);
 
@@ -94,13 +95,29 @@ export const ProfilePage = () => {
     loadLastOrder();
   }, [token, setLastOrder]);
 
+  useEffect(() => {
+    const loadHistory = async () => {
+      if (!token) return;
+      try {
+        const history = await apiFetch<any[]>('/orders/history');
+        setOrders(history || []);
+      } catch {
+        setOrders([]);
+      }
+    };
+    loadHistory();
+  }, [token]);
+
   const handleDeleteLastOrder = async () => {
     if (!token || !lastOrder) return;
     setIsDeletingOrder(true);
     try {
       await apiFetch(`/orders/${lastOrder.id}`, { method: 'DELETE' });
       setLastOrder(null);
-      toast.success('Заказ отменён');
+      setOrders((prev) =>
+        prev.map((o) => (String(o.id) === String(lastOrder.id) ? { ...o, status: 'cancelled' } : o))
+      );
+      toast.success('Заказ отменён (перенесён в историю)');
     } catch (error) {
       const msg = error instanceof Error ? error.message : 'Не удалось отменить заказ';
       toast.error(msg);
@@ -115,7 +132,8 @@ export const ProfilePage = () => {
     try {
       await apiFetch('/orders', { method: 'DELETE' });
       setLastOrder(null);
-      toast.success('Все заказы очищены');
+      setOrders([]);
+      toast.success('История заказов очищена');
     } catch (error) {
       const msg = error instanceof Error ? error.message : 'Не удалось очистить заказы';
       toast.error(msg);
@@ -303,6 +321,57 @@ export const ProfilePage = () => {
           >
             <div className="flex items-center gap-2">
               <Receipt className="w-5 h-5 text-primary" />
+              <h3 className="text-lg font-semibold text-foreground">История заказов</h3>
+            </div>
+
+            {orders.length === 0 && (
+              <p className="text-muted-foreground text-sm">История пуста. Сделайте заказ, чтобы увидеть его здесь.</p>
+            )}
+
+            {orders.length > 0 && (
+              <div className="space-y-4">
+                {orders.map((order) => (
+                  <div key={order.id} className="rounded-2xl bg-secondary/60 p-4 space-y-2">
+                    <div className="flex justify-between text-sm text-muted-foreground">
+                      <span>№ {order.id}</span>
+                      <span className="text-foreground font-medium">{order.status}</span>
+                    </div>
+                    <div className="text-sm text-foreground">
+                      <div className="flex items-center gap-2">
+                        <MapPin className="w-4 h-4 text-primary" />
+                        <span>{order.city}, {order.address}</span>
+                      </div>
+                      <div className="flex items-center gap-2 mt-1">
+                        <Clock className="w-4 h-4 text-primary" />
+                        <span>{order.time}</span>
+                      </div>
+                    </div>
+                    <div className="space-y-1 text-sm text-foreground">
+                      {(order.items || []).map((i: any, idx: number) => (
+                        <div key={idx} className="flex justify-between">
+                          <span>Товар {i.productid || i.productId}</span>
+                          <span>{i.quantity} шт.</span>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="flex justify-between text-sm text-muted-foreground pt-2 border-t border-border">
+                      <span>Итого</span>
+                      <span className="text-foreground font-semibold">{Number(order.total).toLocaleString('ru-RU')} ₽</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </motion.div>
+
+          <motion.div
+            variants={staggerContainer}
+            initial="hidden"
+            animate="visible"
+            className="glass-card rounded-3xl p-6 shadow-soft mb-6 space-y-4 motion-smooth transform-gpu"
+          >
+            <div className="flex items-center gap-2">
+              <Receipt className="w-5 h-5 text-primary" />
               <h3 className="text-lg font-semibold text-foreground">Последний заказ</h3>
             </div>
 
@@ -315,6 +384,12 @@ export const ProfilePage = () => {
                 <div className="flex items-center justify-between text-sm text-muted-foreground">
                   <span>Номер</span>
                   <span className="text-foreground font-semibold">{lastOrder.id}</span>
+                </div>
+                <div className="flex items-center justify-between text-sm text-muted-foreground">
+                  <span>Статус</span>
+                  <span className="text-foreground font-semibold">
+                    {orders.find((o) => String(o.id) === String(lastOrder.id))?.status || 'active'}
+                  </span>
                 </div>
                 <div className="flex justify-end">
                   <motion.button

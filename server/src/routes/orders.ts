@@ -112,6 +112,7 @@ router.get('/last', authGuard, async (req: AuthRequest, res) => {
   try {
     const result = await client.query(
       `select o.order_id as id,
+              o.status,
               o.city,
               o.address,
               o.delivery_time as time,
@@ -152,6 +153,59 @@ router.get('/last', authGuard, async (req: AuthRequest, res) => {
   }
 });
 
+router.get('/history', authGuard, async (req: AuthRequest, res) => {
+  const client = await pool.connect();
+  try {
+    const result = await client.query(
+      `select o.order_id as id,
+              o.status,
+              o.city,
+              o.address,
+              o.delivery_time as time,
+              o.subtotal,
+              o.shipping,
+              o.total,
+              o.created_at,
+              coalesce(
+                json_agg(
+                  json_build_object(
+                    'productId', oi.product_id,
+                    'quantity', oi.quantity,
+                    'unitPrice', oi.unit_price,
+                    'addonsPrice', oi.addons_price,
+                    'total', oi.total,
+                    'addons', (
+                      select coalesce(json_agg(oia.addon_id), '[]')
+                      from order_item_addons oia
+                      where oia.order_item_id = oi.order_item_id
+                    )
+                  )
+                ) filter (where oi.order_item_id is not null), '[]'
+              ) as items
+         from orders o
+         left join order_items oi on oi.order_id = o.order_id
+        where o.user_id = $1
+        group by o.order_id
+        order by o.created_at desc
+        limit 50`,
+      [req.userId]
+    );
+    res.json(result.rows);
+  } finally {
+    client.release();
+  }
+});
+
+router.delete('/', authGuard, async (req: AuthRequest, res) => {
+  const client = await pool.connect();
+  try {
+    await client.query('delete from orders where user_id = $1', [req.userId]);
+    return res.status(204).send();
+  } finally {
+    client.release();
+  }
+});
+
 router.delete('/last', authGuard, async (req: AuthRequest, res) => {
   const client = await pool.connect();
   try {
@@ -163,20 +217,10 @@ router.delete('/last', authGuard, async (req: AuthRequest, res) => {
       [req.userId]
     );
     if (!found.rowCount) {
-      return res.status(404).json({ message: 'Нет заказов для удаления' });
+      return res.status(404).json({ message: 'Нет заказов для отмены' });
     }
     const orderId = found.rows[0].order_id;
-    await client.query('delete from orders where order_id = $1', [orderId]);
-    return res.status(204).send();
-  } finally {
-    client.release();
-  }
-});
-
-router.delete('/', authGuard, async (req: AuthRequest, res) => {
-  const client = await pool.connect();
-  try {
-    await client.query('delete from orders where user_id = $1', [req.userId]);
+    await client.query('update orders set status = $1 where order_id = $2', ['cancelled', orderId]);
     return res.status(204).send();
   } finally {
     client.release();
@@ -197,7 +241,11 @@ router.delete('/:id', authGuard, async (req: AuthRequest, res) => {
     if (!found.rowCount) {
       return res.status(404).json({ message: 'Заказ не найден' });
     }
-    await client.query('delete from orders where order_id = $1 and user_id = $2', [id, req.userId]);
+    await client.query('update orders set status = $1 where order_id = $2 and user_id = $3', [
+      'cancelled',
+      id,
+      req.userId,
+    ]);
     return res.status(204).send();
   } finally {
     client.release();
