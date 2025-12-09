@@ -178,6 +178,13 @@ export const LoginPage = () => {
               </button>
               <button
                 type="button"
+                onClick={() => navigate('/forgot-password')}
+                className="text-muted-foreground hover:text-primary transition-colors"
+              >
+                Забыли пароль?
+              </button>
+              <button
+                type="button"
                 onClick={() => navigate('/catalog')}
                 className="text-muted-foreground hover:text-primary transition-colors"
               >

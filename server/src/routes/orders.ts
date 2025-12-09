@@ -145,5 +145,32 @@ router.get('/last', authGuard, async (req: AuthRequest, res) => {
   }
 });
 
+router.delete('/last', authGuard, async (req: AuthRequest, res) => {
+  const client = await pool.connect();
+  try {
+    const found = await client.query(
+      `select order_id from orders
+       where user_id = $1
+       order by created_at desc
+       limit 1`,
+      [req.userId]
+    );
+    if (!found.rowCount) {
+      return res.status(404).json({ message: 'Нет заказов для удаления' });
+    }
+    const orderId = found.rows[0].order_id;
+    await client.query('delete from orders where order_id = $1', [orderId]);
+    return res.status(204).send();
+  } finally {
+    client.release();
+  }
+});
+
 export default router;
+
+
+
+
+
+
 

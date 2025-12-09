@@ -278,6 +278,20 @@ export const useFlowerStore = create<FlowerStore>()(
     }),
     {
       name: 'flower-store',
+      version: 2,
+      migrate: (state) => {
+        const typedState = state as unknown as FlowerStore;
+        const repairedCart = (typedState?.cart || [])
+          .map((item) => {
+            const product = products.find((p) => p.id === item.product.id);
+            return product ? { ...item, product } : null;
+          })
+          .filter((item): item is CartItem => Boolean(item));
+        return {
+          ...typedState,
+          cart: repairedCart,
+        };
+      },
       partialize: (state) => ({
         cart: state.cart,
         lastOrder: state.lastOrder,

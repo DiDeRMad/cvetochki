@@ -22,3 +22,9 @@ router.get('/', authGuard, async (req: AuthRequest, res) => {
 
 export default router;
 
+
+
+
+
+
+

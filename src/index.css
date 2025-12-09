@@ -93,8 +93,23 @@
     @apply border-border;
   }
 
+  html {
+    scrollbar-gutter: stable both-edges;
+    overflow-y: scroll;
+  }
+
   body {
     @apply bg-background text-foreground font-sans antialiased;
+    --removed-body-scroll-bar-size: 0px !important;
+    padding-right: 0 !important;
+    margin-right: 0 !important;
+  }
+
+  body.react-remove-scroll-bar,
+  body[data-scroll-locked],
+  .react-remove-scroll-bar {
+    padding-right: 0 !important;
+    margin-right: 0 !important;
   }
 }
 
@@ -354,9 +369,9 @@
 
 @supports (-webkit-touch-callout: none) {
   .glass-card {
-    -webkit-backdrop-filter: none;
-    backdrop-filter: none;
-    background: hsl(var(--background) / 0.98);
+    -webkit-backdrop-filter: blur(18px);
+    backdrop-filter: blur(18px);
+    background: hsl(var(--background) / 0.82);
     box-shadow: 0 8px 24px -6px hsl(var(--foreground) / 0.08);
   }
 

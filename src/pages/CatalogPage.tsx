@@ -9,6 +9,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogOverlay,
 } from '@/components/ui/dialog';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Slider } from '@/components/ui/slider';
@@ -99,16 +100,23 @@ export const CatalogPage = () => {
 
   const motionGridProps = isIOS
     ? {
-        initial: { opacity: 0.01, y: 8 },
+        initial: isFiltersOpen ? false : { opacity: 0.01, y: 8 },
         animate: { opacity: 1, y: 0 },
-        transition: iosFadeTransition,
+        transition: isFiltersOpen ? { duration: 0 } : iosFadeTransition,
       }
-    : {
-        initial: { opacity: 0.01 },
-        animate: { opacity: 1 },
-        exit: { opacity: 0 },
-        transition: { type: "tween" as const, duration: 0.22, ease: [0.22, 1, 0.36, 1] as const },
-      };
+    : isFiltersOpen
+      ? {
+          initial: false,
+          animate: { opacity: 1 },
+          exit: { opacity: 1 },
+          transition: { duration: 0 },
+        }
+      : {
+          initial: { opacity: 0.01 },
+          animate: { opacity: 1 },
+          exit: { opacity: 0 },
+          transition: { type: "tween" as const, duration: 0.22, ease: [0.22, 1, 0.36, 1] as const },
+        };
 
   const motionEmptyProps = isIOS
     ? {
@@ -185,11 +193,12 @@ export const CatalogPage = () => {
       </header>
 
       <main className="px-4 relative z-10 pt-[110px] pb-4">
-        <AnimatePresence mode="wait">
+        <AnimatePresence mode="wait" initial={false}>
           {isLoading ? (
             <motion.div 
               key="skeleton"
               {...motionGridProps}
+              initial={false}
               className={`grid grid-cols-2 gap-3 motion-smooth transform-gpu ${isIOS ? 'ios-fade' : ''}`}
             >
               {[...Array(6)].map((_, i) => (
@@ -200,6 +209,7 @@ export const CatalogPage = () => {
             <motion.div 
               key="products"
               {...motionGridProps}
+              initial={false}
               className={`grid grid-cols-2 gap-3 motion-smooth transform-gpu ${isIOS ? 'ios-fade' : ''}`}
             >
               {filteredProducts.map((product, index) => (
@@ -228,7 +238,8 @@ export const CatalogPage = () => {
       </main>
 
 
-      <Dialog open={isFiltersOpen} onOpenChange={setIsFiltersOpen}>
+      <Dialog open={isFiltersOpen} onOpenChange={setIsFiltersOpen} modal={false}>
+        <DialogOverlay className="fixed inset-0 bg-black/50 backdrop-blur-md data-[state=closed]:opacity-0 data-[state=open]:opacity-100 transition-opacity duration-200" />
         <DialogContent className="rounded-3xl max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-2xl font-bold text-gradient flex items-center justify-between">

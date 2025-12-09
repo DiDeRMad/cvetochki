@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, User, Mail, Phone, LogOut, Flower2, MapPin, Clock, Receipt } from 'lucide-react';
+import { ArrowLeft, User, Mail, Phone, LogOut, Flower2, MapPin, Clock, Receipt, Trash2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 import { addonPrices, useFlowerStore } from '@/lib/store';
@@ -21,6 +21,7 @@ export const ProfilePage = () => {
   const setAuth = useAuthStore((state) => state.setAuth);
   const clearAuth = useAuthStore((state) => state.clear);
   const setLastOrder = useFlowerStore((state) => state.setLastOrder);
+  const [isDeletingOrder, setIsDeletingOrder] = useState(false);
 
   useEffect(() => {
     if (authUser) {
@@ -91,6 +92,21 @@ export const ProfilePage = () => {
     };
     loadLastOrder();
   }, [token, setLastOrder]);
+
+  const handleDeleteLastOrder = async () => {
+    if (!token || !lastOrder) return;
+    setIsDeletingOrder(true);
+    try {
+      await apiFetch('/orders/last', { method: 'DELETE' });
+      setLastOrder(null);
+      toast.success('Последний заказ удалён');
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : 'Не удалось удалить заказ';
+      toast.error(msg);
+    } finally {
+      setIsDeletingOrder(false);
+    }
+  };
 
   const handleLogout = () => {
     clearAuth();
@@ -283,6 +299,18 @@ export const ProfilePage = () => {
                 <div className="flex items-center justify-between text-sm text-muted-foreground">
                   <span>Номер</span>
                   <span className="text-foreground font-semibold">{lastOrder.id}</span>
+                </div>
+                <div className="flex justify-end">
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={handleDeleteLastOrder}
+                    disabled={isDeletingOrder}
+                    className="flex items-center gap-2 text-sm text-destructive hover:text-destructive/80 rounded-xl px-3 py-2 bg-destructive/10 disabled:opacity-60"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    <span>{isDeletingOrder ? 'Удаляем...' : 'Удалить последний заказ'}</span>
+                  </motion.button>
                 </div>
                 <div className="grid grid-cols-1 gap-3">
                   <div className="rounded-2xl bg-secondary/60 p-3">

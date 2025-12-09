@@ -37,6 +37,15 @@ CREATE TABLE users (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+CREATE TABLE password_reset_tokens (
+  token_id SERIAL PRIMARY KEY,
+  user_id INTEGER NOT NULL,
+  token_hash TEXT NOT NULL,
+  expires_at TIMESTAMPTZ NOT NULL,
+  used_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
 CREATE TABLE user_roles (
   user_id INTEGER NOT NULL,
   role_id INTEGER NOT NULL,
@@ -122,6 +131,9 @@ ALTER TABLE user_favorites
   ADD CONSTRAINT fk_user_favorites_user FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
   ADD CONSTRAINT fk_user_favorites_product FOREIGN KEY (product_id) REFERENCES products(product_id) ON DELETE CASCADE;
 
+ALTER TABLE password_reset_tokens
+  ADD CONSTRAINT fk_password_reset_user FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE;
+
 ALTER TABLE orders
   ADD CONSTRAINT fk_orders_user FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE SET NULL;
 
@@ -136,6 +148,9 @@ ALTER TABLE order_item_addons
 
 CREATE INDEX idx_users_email ON users(email);
 CREATE INDEX idx_users_active ON users(is_active);
+CREATE INDEX idx_password_reset_token_hash ON password_reset_tokens(token_hash);
+CREATE INDEX idx_password_reset_user ON password_reset_tokens(user_id);
+CREATE INDEX idx_password_reset_expires ON password_reset_tokens(expires_at);
 
 CREATE INDEX idx_user_roles_user ON user_roles(user_id);
 CREATE INDEX idx_user_roles_role ON user_roles(role_id);

@@ -101,9 +101,11 @@ export const CartPage = () => {
               animate={{ opacity: 1 }}
               className="space-y-4"
             >
-              {cart.map((item, index) => (
-                <CartItemCard key={item.product.id} item={item} index={index} />
-              ))}
+              <AnimatePresence mode="popLayout" initial={false}>
+                {cart.map((item, index) => (
+                  <CartItemCard key={item.product.id} item={item} index={index} />
+                ))}
+              </AnimatePresence>
             </motion.div>
           )}
         </AnimatePresence>

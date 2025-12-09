@@ -1,8 +1,10 @@
 import { Router, Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import { randomBytes, createHash } from 'crypto';
 import { z } from 'zod';
 import { pool } from '../db';
+import { sendPasswordResetEmail } from '../utils/mailer';
 
 const router = Router();
 
@@ -15,6 +17,15 @@ const registerSchema = z.object({
 
 const loginSchema = z.object({
   email: z.string().email(),
+  password: z.string().min(6),
+});
+
+const forgotSchema = z.object({
+  email: z.string().email(),
+});
+
+const resetSchema = z.object({
+  token: z.string().min(10),
   password: z.string().min(6),
 });
 
@@ -76,6 +87,79 @@ router.post('/login', async (req: Request, res: Response) => {
         phone: user.phone,
       },
     });
+  } finally {
+    client.release();
+  }
+});
+
+router.post('/forgot-password', async (req: Request, res: Response) => {
+  const parsed = forgotSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ message: 'Invalid data' });
+  }
+  const { email } = parsed.data;
+  const client = await pool.connect();
+  try {
+    const user = await client.query(
+      'select user_id, email from users where email=$1',
+      [email]
+    );
+    if (!user.rowCount) {
+      return res.json({ message: 'If email exists, reset link sent' });
+    }
+    const token = randomBytes(32).toString('hex');
+    const tokenHash = createHash('sha256').update(token).digest('hex');
+    const expires = new Date(Date.now() + 60 * 60 * 1000);
+    await client.query(
+      'insert into password_reset_tokens(user_id, token_hash, expires_at) values ($1,$2,$3)',
+      [user.rows[0].user_id, tokenHash, expires]
+    );
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    const link = `${frontendUrl}/reset-password?token=${token}`;
+    await sendPasswordResetEmail(email, link);
+    return res.json({ message: 'If email exists, reset link sent' });
+  } finally {
+    client.release();
+  }
+});
+
+router.post('/reset-password', async (req: Request, res: Response) => {
+  const parsed = resetSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ message: 'Invalid data' });
+  }
+  const { token, password } = parsed.data;
+  const tokenHash = createHash('sha256').update(token).digest('hex');
+  const client = await pool.connect();
+  try {
+    const found = await client.query(
+      `select pr.user_id
+       from password_reset_tokens pr
+       where pr.token_hash=$1
+         and pr.used_at is null
+         and pr.expires_at > now()
+       order by pr.created_at desc
+       limit 1`,
+      [tokenHash]
+    );
+    if (!found.rowCount) {
+      return res.status(400).json({ message: 'Token invalid or expired' });
+    }
+    const userId = found.rows[0].user_id;
+    const hash = await bcrypt.hash(password, 10);
+    await client.query('update users set password_hash=$1 where user_id=$2', [hash, userId]);
+    await client.query(
+      'update password_reset_tokens set used_at=now() where token_hash=$1',
+      [tokenHash]
+    );
+    await client.query('delete from password_reset_tokens where user_id=$1 and used_at is not null', [userId]);
+    const userRes = await client.query(
+      'select user_id, full_name, email, phone from users where user_id=$1',
+      [userId]
+    );
+    const user = userRes.rows[0];
+    const jwtToken = signToken(user.user_id);
+    return res.json({ token: jwtToken, user });
   } finally {
     client.release();
   }

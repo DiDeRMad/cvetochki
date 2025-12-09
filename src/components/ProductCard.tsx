@@ -35,18 +35,19 @@ export const ProductCard = ({ product, index = 0 }: ProductCardProps) => {
         ? {
             initial: { opacity: 0.01, y: 8 },
             animate: { opacity: 1, y: 0 },
-            transition: { duration: 0.22, delay: index * 0.05, ease: [0.25, 0.8, 0.35, 1] },
+            transition: { duration: 0.18, ease: [0.25, 0.8, 0.35, 1] },
           }
         : {
-            initial: { opacity: 0.01, y: 30, scale: 0.9 },
+            initial: { opacity: 0.01, y: 20, scale: 0.96 },
             animate: { opacity: 1, y: 0, scale: 1 },
             transition: {
-              duration: 0.28,
-              delay: index * 0.08,
+              duration: 0.18,
+              delay: index * 0.03,
               type: "tween",
-              ease: [0.22, 1, 0.36, 1],
+              ease: [0.25, 0.8, 0.35, 1],
             },
-            whileHover: { y: -8 },
+            whileHover: { y: -3, scale: 1.005, transition: { duration: 0.08, ease: [0.25, 0.8, 0.35, 1] } },
+            whileTap: { scale: 0.99 },
           })}
       className={`card-product cursor-pointer group motion-smooth transform-gpu ${isIOS ? 'ios-fade' : ''}`}
       onClick={() => navigate(`/product/${product.id}`)}
@@ -60,12 +61,12 @@ export const ProductCard = ({ product, index = 0 }: ProductCardProps) => {
           {...(isIOS
             ? {}
             : {
-                whileHover: { scale: 1.08 },
-                transition: { duration: 0.4 },
+                whileHover: { scale: 1.012 },
+                transition: { duration: 0.08, ease: [0.25, 0.8, 0.35, 1] },
               })}
         />
         
-        <div className={`absolute inset-0 bg-gradient-to-t from-foreground/20 via-transparent to-transparent ${isIOS ? '' : 'opacity-0 group-hover:opacity-100 transition-opacity duration-300'}`} />
+        <div className={`absolute inset-0 bg-gradient-to-t from-foreground/20 via-transparent to-transparent ${isIOS ? '' : 'opacity-0 group-hover:opacity-100 transition-opacity duration-150'}`} />
         
         <motion.button
           {...(isIOS

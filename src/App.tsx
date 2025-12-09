@@ -11,6 +11,8 @@ import { CheckoutPage } from "./pages/CheckoutPage";
 import { OrderConfirmationPage } from "./pages/OrderConfirmationPage";
 import { RegisterPage } from "./pages/RegisterPage";
 import { LoginPage } from "./pages/LoginPage";
+import { ForgotPasswordPage } from "./pages/ForgotPasswordPage";
+import { ResetPasswordPage } from "./pages/ResetPasswordPage";
 import { ProfilePage } from "./pages/ProfilePage";
 import { WelcomePage } from "./pages/WelcomePage";
 import { BottomNav } from "./components/BottomNav";
@@ -69,6 +71,8 @@ const AppContent = () => {
         <Route path="/catalog" element={<CatalogPage />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="/product/:id" element={<ProductPage />} />
         <Route path="/cart" element={<CartPage />} />
         <Route path="/checkout" element={<CheckoutPage />} />
@@ -79,6 +83,8 @@ const AppContent = () => {
       {!isWelcomePage && 
        location.pathname !== '/register' && 
        location.pathname !== '/login' &&
+       location.pathname !== '/forgot-password' &&
+       location.pathname !== '/reset-password' &&
        !location.pathname.startsWith('/product/') && 
        <BottomNav />}
     </div>
