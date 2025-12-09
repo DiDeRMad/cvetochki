@@ -27,14 +27,9 @@ export const ProfilePage = () => {
       if (!token) return;
       try {
         const history = await apiFetch<any[]>('/orders/history');
-        const seen = new Set<string>();
-        const unique = [];
-        for (const o of history || []) {
-          const key = String(o.id);
-          if (seen.has(key)) continue;
-          seen.add(key);
-          unique.push(o);
-        }
+        const unique = Array.from(
+          new Map((history || []).map((o) => [String(o.id), o])).values()
+        );
         setOrders(unique);
       } catch {
         setOrders([]);
@@ -311,7 +306,15 @@ export const ProfilePage = () => {
                   <div key={order.id} className="rounded-2xl bg-secondary/60 p-4 space-y-2">
                     <div className="flex justify-between text-sm text-muted-foreground">
                       <span>№ {order.id}</span>
-                      <span className="text-foreground font-medium">{order.status}</span>
+                      <span className="text-foreground font-medium">
+                        {order.status === 'created'
+                          ? 'Создан'
+                          : order.status === 'cancelled'
+                          ? 'Отменён'
+                          : order.status === 'completed'
+                          ? 'Доставлен'
+                          : 'В обработке'}
+                      </span>
                     </div>
                     <div className="text-sm text-foreground">
                       <div className="flex items-center gap-2">
