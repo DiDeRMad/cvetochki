@@ -84,8 +84,10 @@ export const ProductCard = ({ product, index = 0 }: ProductCardProps) => {
               })}
           whileTap={{ scale: 0.92 }}
           onClick={handleToggleFavorite}
-          className={`absolute top-3 right-3 w-10 h-10 rounded-full backdrop-blur-md bg-background/70 border border-white/20 shadow-sm flex items-center justify-center transition-colors ${
-            isFavorite ? 'text-rose-500 bg-white/90' : 'text-white'
+          className={`absolute top-3 right-3 w-10 h-10 rounded-full backdrop-blur-md border shadow-sm flex items-center justify-center transition-colors ${
+            isFavorite
+              ? 'bg-white/90 border-rose-200 text-rose-500'
+              : 'bg-background/70 border-white/20 text-white'
           }`}
           aria-label={isFavorite ? 'Убрать из избранного' : 'В избранное'}
         >

@@ -20,6 +20,8 @@ export const ProductPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const addToCart = useFlowerStore((state) => state.addToCart);
+  const toggleFavorite = useFlowerStore((state) => state.toggleFavorite);
+  const isFavorite = useFlowerStore((state) => (id ? state.favorites.includes(id) : false));
   
   const product = products.find((p) => p.id === id);
   const [quantity, setQuantity] = useState(1);
@@ -33,19 +35,9 @@ export const ProductPage = () => {
     setCurrentImage(0);
   }, [id]);
   
-  const getLikedKey = () => `liked_${id}`;
-  const [isLiked, setIsLiked] = useState(() => {
-    if (!id) return false;
-    const saved = localStorage.getItem(getLikedKey());
-    return saved === 'true';
-  });
-
   const handleLikeToggle = () => {
-    const newLikedState = !isLiked;
-    setIsLiked(newLikedState);
-    if (id) {
-      localStorage.setItem(getLikedKey(), String(newLikedState));
-    }
+    if (!id) return;
+    toggleFavorite(id);
   };
 
   const minSwipeDistance = 50;
@@ -135,9 +127,10 @@ export const ProductPage = () => {
           whileTap={{ scale: 0.94 }}
           onClick={handleLikeToggle}
           className="w-11 h-11 rounded-2xl glass-card shadow-soft flex items-center justify-center relative overflow-hidden"
+          aria-label={isFavorite ? 'Убрать из избранного' : 'В избранное'}
         >
           <AnimatePresence mode={isIOS ? undefined : "wait"}>
-            {isLiked && (
+            {isFavorite && (
               <motion.div
                 initial={{ scale: 0.6, opacity: 0.01 }}
                 animate={{ scale: 1, opacity: 1 }}
@@ -153,16 +146,16 @@ export const ProductPage = () => {
                 </motion.div>
               </motion.div>
             )}
-            {!isLiked && (
-          <motion.div
+            {!isFavorite && (
+              <motion.div
                 initial={{ scale: 0.6, opacity: 0.01 }}
                 animate={{ scale: 1, opacity: 1 }}
                 exit={isIOS ? undefined : { scale: 0, rotate: -180 }}
-            transition={{ duration: 0.24, type: "tween", ease: [0.22, 1, 0.36, 1] }}
+                transition={{ duration: 0.24, type: "tween", ease: [0.22, 1, 0.36, 1] }}
                 className="absolute inset-0 flex items-center justify-center"
-          >
+              >
                 <Heart className="w-5 h-5 text-foreground" />
-          </motion.div>
+              </motion.div>
             )}
           </AnimatePresence>
         </motion.button>
